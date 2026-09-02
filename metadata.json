@@ -1,0 +1,7 @@
+{
+  "name": "TécnicoLink - Portfólio Fácil para Profissionais Técnicos",
+  "description": "Micro SaaS para técnicos e prestadores de serviço gerarem sites e portfólios no WhatsApp em 5 minutos com Supabase, Next.js e Tailwind CSS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
