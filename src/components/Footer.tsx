@@ -150,10 +150,10 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView?.('sql_schema')}
+                  onClick={() => setCurrentView?.('register')}
                   className="hover:text-orange-400 transition-colors text-left"
                 >
-                  Estrutura Supabase SQL
+                  Criar Conta Grátis
                 </button>
               </li>
             </ul>
@@ -162,15 +162,15 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
           {/* Security and Credentials */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Segurança & Tecnologia
+              Segurança & Confiabilidade
             </h4>
-            <div className="bg-gray-900 border border-gray-800 p-3 rounded-xl space-y-2">
+            <div className="bg-gray-900 border border-gray-800 p-3.5 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Banco de Dados Supabase</span>
+                <span>Ambiente Seguro & Criptografado</span>
               </div>
-              <p className="text-[11px] text-gray-400 leading-snug">
-                Infraestrutura com proteção RLS (Row Level Security), criptografia e carregamento ultra-rápido.
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Plataforma com certificado SSL ativo, alta disponibilidade e proteção total dos dados e contatos de cada profissional.
               </p>
             </div>
           </div>

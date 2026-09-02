@@ -517,15 +517,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={onStart}
-              className="px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-lg shadow-sm transition-all"
+              className="px-6 py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
             >
-              CRIAR MEU PORTFÓLIO EM 5 MINUTOS
-            </button>
-            <button
-              onClick={() => setCurrentView('sql_schema')}
-              className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg border border-gray-300 transition-all"
-            >
-              Ver Arquitetura Supabase / SQL
+              <span>CRIAR MEU SITE GRÁTIS EM 5 MINUTOS</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>

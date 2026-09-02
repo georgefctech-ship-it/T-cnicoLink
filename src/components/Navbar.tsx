@@ -170,65 +170,67 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               )}
 
-              {/* Admin Master Tab (STRICTLY ONLY FOR LOGGED-IN ADMIN) */}
+              {/* Admin Master Tab & Developer Resources (STRICTLY ONLY FOR LOGGED-IN ADMIN) */}
               {isAdmin && (
-                <button
-                  id="nav-tab-admin"
-                  onClick={() => navigateTo('admin_control')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                    currentView === 'admin_control'
-                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs ring-1 ring-amber-400'
-                      : 'text-amber-400 hover:text-amber-300 hover:bg-gray-850'
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Central Admin</span>
-                </button>
-              )}
+                <>
+                  <button
+                    id="nav-tab-admin"
+                    onClick={() => navigateTo('admin_control')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      currentView === 'admin_control'
+                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs ring-1 ring-amber-400'
+                        : 'text-amber-400 hover:text-amber-300 hover:bg-gray-850'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Central Admin</span>
+                  </button>
 
-              {/* Dropdown "Recursos / SQL" */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  id="nav-tab-more"
-                  onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
-                    currentView === 'sql_schema' || currentView === 'deploy_docs'
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-850'
-                  }`}
-                >
-                  <span>Recursos</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+                  {/* Dropdown "Recursos / SQL" (Exclusivo Admin Master) */}
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      id="nav-tab-more"
+                      onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                        currentView === 'sql_schema' || currentView === 'deploy_docs'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-850'
+                      }`}
+                    >
+                      <span>Recursos Dev</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
 
-                {moreDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-52 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
-                    <button
-                      id="nav-sub-sql"
-                      onClick={() => navigateTo('sql_schema')}
-                      className="w-full px-3.5 py-2.5 text-left text-xs font-medium text-gray-200 hover:bg-gray-800 flex items-center gap-2.5 transition-colors"
-                    >
-                      <Database className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <div>
-                        <span className="font-bold block text-white">Schema SQL Supabase</span>
-                        <span className="text-[10px] text-gray-400 block">Tabelas, RLS & Storage</span>
+                    {moreDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-52 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95">
+                        <button
+                          id="nav-sub-sql"
+                          onClick={() => navigateTo('sql_schema')}
+                          className="w-full px-3.5 py-2.5 text-left text-xs font-medium text-gray-200 hover:bg-gray-800 flex items-center gap-2.5 transition-colors"
+                        >
+                          <Database className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div>
+                            <span className="font-bold block text-white">Schema SQL Supabase</span>
+                            <span className="text-[10px] text-gray-400 block">Tabelas, RLS & Storage</span>
+                          </div>
+                        </button>
+                        
+                        <button
+                          id="nav-sub-deploy"
+                          onClick={() => navigateTo('deploy_docs')}
+                          className="w-full px-3.5 py-2.5 text-left text-xs font-medium text-gray-200 hover:bg-gray-850 flex items-center gap-2.5 transition-colors"
+                        >
+                          <Cloud className="w-4 h-4 text-sky-400 shrink-0" />
+                          <div>
+                            <span className="font-bold block text-white">Deploy & Domínio</span>
+                            <span className="text-[10px] text-gray-400 block">Publicar na Vercel</span>
+                          </div>
+                        </button>
                       </div>
-                    </button>
-                    
-                    <button
-                      id="nav-sub-deploy"
-                      onClick={() => navigateTo('deploy_docs')}
-                      className="w-full px-3.5 py-2.5 text-left text-xs font-medium text-gray-200 hover:bg-gray-850 flex items-center gap-2.5 transition-colors"
-                    >
-                      <Cloud className="w-4 h-4 text-sky-400 shrink-0" />
-                      <div>
-                        <span className="font-bold block text-white">Deploy & Domínio</span>
-                        <span className="text-[10px] text-gray-400 block">Publicar na Vercel</span>
-                      </div>
-                    </button>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </nav>
 
             {/* 3. Right Action Bar */}
@@ -558,34 +560,36 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Technical Resources Section */}
-            <div className="space-y-1.5 pt-2 border-t border-gray-800">
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">
-                Recursos & Deploy
-              </span>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  id="mobile-nav-sql"
-                  onClick={() => navigateTo('sql_schema')}
-                  className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors"
-                >
-                  <Database className="w-4 h-4 text-emerald-400 mb-1" />
-                  <span className="text-xs font-bold text-white block">Schema SQL</span>
-                  <span className="text-[10px] text-gray-400 block">Supabase</span>
-                </button>
+            {/* Technical Resources Section (STRICTLY ONLY FOR ADMIN) */}
+            {isAdmin && (
+              <div className="space-y-1.5 pt-2 border-t border-gray-800">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider px-1">
+                  Recursos Dev & Deploy (Admin)
+                </span>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    id="mobile-nav-sql"
+                    onClick={() => navigateTo('sql_schema')}
+                    className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors"
+                  >
+                    <Database className="w-4 h-4 text-emerald-400 mb-1" />
+                    <span className="text-xs font-bold text-white block">Schema SQL</span>
+                    <span className="text-[10px] text-gray-400 block">Supabase</span>
+                  </button>
 
-                <button
-                  id="mobile-nav-deploy"
-                  onClick={() => navigateTo('deploy_docs')}
-                  className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors"
-                >
-                  <Cloud className="w-4 h-4 text-sky-400 mb-1" />
-                  <span className="text-xs font-bold text-white block">Deploy Vercel</span>
-                  <span className="text-[10px] text-gray-400 block">Domínio</span>
-                </button>
+                  <button
+                    id="mobile-nav-deploy"
+                    onClick={() => navigateTo('deploy_docs')}
+                    className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors"
+                  >
+                    <Cloud className="w-4 h-4 text-sky-400 mb-1" />
+                    <span className="text-xs font-bold text-white block">Deploy Vercel</span>
+                    <span className="text-[10px] text-gray-400 block">Domínio</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Logout on Mobile if logged in */}
             {isLoggedIn && (

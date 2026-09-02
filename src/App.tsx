@@ -413,11 +413,55 @@ export default function App() {
         )}
 
         {currentView === 'sql_schema' && (
-          <SqlSchemaView />
+          isAdmin ? (
+            <SqlSchemaView />
+          ) : (
+            <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+              <div className="bg-white border border-amber-200 rounded-3xl p-8 sm:p-10 shadow-lg">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-center mx-auto mb-5">
+                  <ShieldAlert className="w-8 h-8 text-amber-600" />
+                </div>
+                <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Recurso Exclusivo do Administrador</h2>
+                <p className="mt-3 text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                  A estrutura e configurações do banco de dados são estritamente restritas ao proprietário do sistema.
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setCurrentView('home')}
+                    className="px-6 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl transition-all"
+                  >
+                    Voltar para o Início
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {currentView === 'deploy_docs' && (
-          <DeployDocsView />
+          isAdmin ? (
+            <DeployDocsView />
+          ) : (
+            <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+              <div className="bg-white border border-amber-200 rounded-3xl p-8 sm:p-10 shadow-lg">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-center mx-auto mb-5">
+                  <ShieldAlert className="w-8 h-8 text-amber-600" />
+                </div>
+                <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Recurso Exclusivo do Administrador</h2>
+                <p className="mt-3 text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                  As instruções de deploy em nuvem e servidores são estritamente restritas ao administrador master.
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setCurrentView('home')}
+                    className="px-6 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl transition-all"
+                  >
+                    Voltar para o Início
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
       </main>
 
