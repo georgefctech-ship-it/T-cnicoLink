@@ -83,8 +83,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [mobileMenuOpen]);
 
-  const isPro = activeProfile.plan === 'pro' || activeProfile.plan === 'enterprise';
-  const isAdmin = activeProfile.role === 'admin';
+  const isLoggedIn = Boolean(currentUser);
+  const isAdmin = Boolean(
+    currentUser && (
+      currentUser.role === 'admin' || 
+      currentUser.email?.toLowerCase().trim() === 'georgefctec@gmail.com' ||
+      currentUser.email?.toLowerCase().includes('admin@')
+    )
+  );
+  const isPro = activeProfile?.plan === 'pro' || activeProfile?.plan === 'enterprise';
 
   return (
     <>
@@ -129,41 +136,48 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Início
               </button>
 
-              <button
-                id="nav-tab-panel"
-                onClick={() => navigateTo('panel')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  currentView === 'panel'
-                    ? 'bg-orange-600 text-white shadow-xs'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-850'
-                }`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Painel do Técnico</span>
-              </button>
+              {/* If logged in as technician or admin */}
+              {isLoggedIn && (
+                <>
+                  <button
+                    id="nav-tab-panel"
+                    onClick={() => navigateTo('panel')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      currentView === 'panel'
+                        ? 'bg-orange-600 text-white shadow-xs'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-850'
+                    }`}
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>{isAdmin ? 'Painel Técnico' : 'Meu Painel'}</span>
+                  </button>
 
-              <button
-                id="nav-tab-profile"
-                onClick={() => navigateTo('public_profile')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  currentView === 'public_profile'
-                    ? 'bg-orange-600 text-white shadow-xs'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-850'
-                }`}
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Ver Meu Site</span>
-                <span className="text-[10px] font-normal text-gray-400 opacity-80">(/p/{activeProfile.username})</span>
-              </button>
+                  <button
+                    id="nav-tab-profile"
+                    onClick={() => navigateTo('public_profile')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      currentView === 'public_profile'
+                        ? 'bg-orange-600 text-white shadow-xs'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-850'
+                    }`}
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>Ver Meu Site</span>
+                    {activeProfile && (
+                      <span className="text-[10px] font-normal text-gray-400 opacity-80">(/p/{activeProfile.username})</span>
+                    )}
+                  </button>
+                </>
+              )}
 
-              {/* 1. Admin Master Tab (Only visible if user has admin role) */}
+              {/* Admin Master Tab (STRICTLY ONLY FOR LOGGED-IN ADMIN) */}
               {isAdmin && (
                 <button
                   id="nav-tab-admin"
                   onClick={() => navigateTo('admin_control')}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
                     currentView === 'admin_control'
-                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs'
+                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs ring-1 ring-amber-400'
                       : 'text-amber-400 hover:text-amber-300 hover:bg-gray-850'
                   }`}
                 >
@@ -220,92 +234,115 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* 3. Right Action Bar */}
             <div className="flex items-center gap-2 sm:gap-3">
               
-              {/* Connected User Profile Display (Desktop) */}
-              {isAdmin ? (
-                /* Admin: Can switch test profiles via dropdown */
-                <div className="relative hidden md:block" ref={profileDropdownRef}>
-                  <button
-                    id="nav-profile-menu-btn"
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-950/80 hover:bg-gray-850 rounded-xl border border-gray-800 text-left transition-all"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-[10px] font-black text-purple-300 overflow-hidden">
-                      {activeProfile.avatar_url ? (
-                        <img src={activeProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        activeProfile.full_name.charAt(0)
-                      )}
-                    </div>
-                    <div className="max-w-[120px] truncate">
-                      <span className="text-xs font-bold text-gray-200 block truncate leading-none">
-                        {activeProfile.full_name}
-                      </span>
-                      <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-wider block mt-0.5">
-                        Admin Master
-                      </span>
-                    </div>
-                    <ChevronDown className="w-3 h-3 text-gray-400" />
-                  </button>
-
-                  {profileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
-                      <div className="px-2 py-1.5 border-b border-gray-800 mb-1.5">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                          Alternar Usuário (Modo Admin):
+              {/* Authenticated User Display */}
+              {isLoggedIn ? (
+                isAdmin ? (
+                  /* Admin: Can switch test profiles via dropdown */
+                  <div className="relative hidden md:block" ref={profileDropdownRef}>
+                    <button
+                      id="nav-profile-menu-btn"
+                      onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                      className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-950/80 hover:bg-gray-850 rounded-xl border border-amber-500/40 text-left transition-all"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-amber-600/30 border border-amber-500/40 flex items-center justify-center text-[10px] font-black text-amber-300 overflow-hidden">
+                        {activeProfile?.avatar_url ? (
+                          <img src={activeProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          'G'
+                        )}
+                      </div>
+                      <div className="max-w-[130px] truncate">
+                        <span className="text-xs font-bold text-amber-200 block truncate leading-none">
+                          {currentUser.name || 'George Master'}
+                        </span>
+                        <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider block mt-0.5">
+                          Admin Master
                         </span>
                       </div>
-                      <div className="space-y-1 max-h-60 overflow-y-auto">
-                        {profiles.map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              onSelectProfile(p);
-                              setProfileDropdownOpen(false);
-                            }}
-                            className={`w-full p-2 rounded-lg text-left text-xs flex items-center justify-between transition-colors ${
-                              p.id === activeProfile.id
-                                ? 'bg-orange-600 text-white font-bold'
-                                : 'text-gray-300 hover:bg-gray-850'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <div className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center text-[9px] font-bold shrink-0">
-                                {p.full_name.charAt(0)}
+                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                    </button>
+
+                    {profileDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-64 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
+                        <div className="px-2 py-1.5 border-b border-gray-800 mb-1.5">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                            Modo Administrador Master
+                          </span>
+                        </div>
+                        <div className="space-y-1 max-h-60 overflow-y-auto">
+                          {profiles.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => {
+                                onSelectProfile(p);
+                                setProfileDropdownOpen(false);
+                              }}
+                              className={`w-full p-2 rounded-lg text-left text-xs flex items-center justify-between transition-colors ${
+                                p.id === activeProfile?.id
+                                  ? 'bg-orange-600 text-white font-bold'
+                                  : 'text-gray-300 hover:bg-gray-850'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <div className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center text-[9px] font-bold shrink-0">
+                                  {p.full_name.charAt(0)}
+                                </div>
+                                <span className="truncate">{p.full_name}</span>
                               </div>
-                              <span className="truncate">{p.full_name}</span>
-                            </div>
-                            <span className="text-[9px] opacity-80 shrink-0 ml-1.5 uppercase font-mono">
-                              {p.role === 'admin' ? 'Admin' : p.plan === 'pro' ? 'PRO' : 'Free'}
-                            </span>
-                          </button>
-                        ))}
+                              <span className="text-[9px] opacity-80 shrink-0 ml-1.5 uppercase font-mono">
+                                {p.role === 'admin' ? 'Admin' : p.plan === 'pro' ? 'PRO' : 'Free'}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* Free / Non-Admin User: Shows ONLY the currently connected user, no other users */
-                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-950/80 rounded-xl border border-gray-800 text-left">
-                  <div className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center text-[10px] font-black text-orange-400 overflow-hidden shrink-0">
-                    {activeProfile.avatar_url ? (
-                      <img src={activeProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      activeProfile.full_name.charAt(0)
                     )}
                   </div>
-                  <div className="max-w-[130px] truncate">
-                    <span className="text-xs font-bold text-gray-200 block truncate leading-none">
-                      {activeProfile.full_name}
-                    </span>
-                    <span className="text-[9px] font-semibold text-orange-400 uppercase tracking-wider block mt-0.5">
-                      {isPro ? 'Plano Pro' : 'Plano Free'}
-                    </span>
+                ) : (
+                  /* Regular Logged-In Technician: Shows ONLY their own profile */
+                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-950/80 rounded-xl border border-gray-800 text-left">
+                    <div className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center text-[10px] font-black text-orange-400 overflow-hidden shrink-0">
+                      {activeProfile?.avatar_url ? (
+                        <img src={activeProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        activeProfile?.full_name?.charAt(0) || 'T'
+                      )}
+                    </div>
+                    <div className="max-w-[130px] truncate">
+                      <span className="text-xs font-bold text-gray-200 block truncate leading-none">
+                        {activeProfile?.full_name || currentUser.name}
+                      </span>
+                      <span className="text-[9px] font-semibold text-orange-400 uppercase tracking-wider block mt-0.5">
+                        {isPro ? 'Plano Pro' : 'Plano Free'}
+                      </span>
+                    </div>
                   </div>
+                )
+              ) : (
+                /* Public Visitor: Show Login & Register CTA buttons */
+                <div className="hidden sm:flex items-center gap-2">
+                  <button
+                    id="btn-login-header"
+                    onClick={() => navigateTo('login')}
+                    className="px-3 py-1.5 text-gray-300 hover:text-white hover:bg-gray-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Entrar</span>
+                  </button>
+
+                  <button
+                    id="btn-register-header"
+                    onClick={() => navigateTo('register')}
+                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                  >
+                    <span>Criar Meu Site Grátis</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
                 </div>
               )}
 
-              {/* Auth Login / Logout */}
-              {currentUser ? (
+              {/* Logout Button (Only if logged in) */}
+              {isLoggedIn && (
                 <button
                   id="btn-logout"
                   onClick={onLogout}
@@ -313,15 +350,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   title="Sair da conta"
                 >
                   <LogOut className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  id="btn-login-header"
-                  onClick={() => navigateTo('login')}
-                  className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Entrar</span>
                 </button>
               )}
 
@@ -351,72 +379,99 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Mobile Drawer Content */}
           <div className="relative z-50 bg-gray-900 border-b border-gray-800 shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-4 animate-in slide-in-from-top duration-200">
             
-            {/* Active User Card (Mobile) */}
-            <div className="p-3.5 bg-gray-950 rounded-2xl border border-gray-800 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/40 flex items-center justify-center text-sm font-bold text-orange-400">
-                    {activeProfile.avatar_url ? (
-                      <img src={activeProfile.avatar_url} alt="" className="w-full h-full rounded-xl object-cover" />
+            {/* User Info / Guest Card */}
+            {isLoggedIn && activeProfile ? (
+              <div className="p-3.5 bg-gray-950 rounded-2xl border border-gray-800 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/40 flex items-center justify-center text-sm font-bold text-orange-400">
+                      {activeProfile.avatar_url ? (
+                        <img src={activeProfile.avatar_url} alt="" className="w-full h-full rounded-xl object-cover" />
+                      ) : (
+                        activeProfile.full_name.charAt(0)
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-white block leading-tight">
+                        {activeProfile.full_name}
+                      </span>
+                      <span className="text-xs text-gray-400 block mt-0.5">
+                        {activeProfile.profession}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {isAdmin ? (
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-md border border-amber-500/30">
+                        ADMIN
+                      </span>
+                    ) : isPro ? (
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-md border border-amber-500/30 flex items-center gap-1">
+                        <Crown className="w-3 h-3" />
+                        PRO
+                      </span>
                     ) : (
-                      activeProfile.full_name.charAt(0)
+                      <span className="px-2 py-0.5 bg-gray-800 text-gray-400 text-[10px] font-bold rounded-md">
+                        FREE
+                      </span>
                     )}
                   </div>
-                  <div>
-                    <span className="text-sm font-bold text-white block leading-tight">
-                      {activeProfile.full_name}
-                    </span>
-                    <span className="text-xs text-gray-400 block mt-0.5">
-                      {activeProfile.profession}
-                    </span>
-                  </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  {isAdmin ? (
-                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-[10px] font-bold rounded-md border border-purple-500/30">
-                      ADMIN
-                    </span>
-                  ) : isPro ? (
-                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-md border border-amber-500/30 flex items-center gap-1">
-                      <Crown className="w-3 h-3" />
-                      PRO
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-gray-800 text-gray-400 text-[10px] font-bold rounded-md">
-                      FREE
-                    </span>
-                  )}
+                {/* Profile Switcher (STRICTLY ONLY FOR ADMIN) */}
+                {isAdmin && (
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                      Alternar Perfil (Modo Admin):
+                    </label>
+                    <select
+                      id="mobile-profile-select"
+                      value={activeProfile.id}
+                      onChange={(e) => {
+                        const found = profiles.find(p => p.id === e.target.value);
+                        if (found) {
+                          onSelectProfile(found);
+                          setMobileMenuOpen(false);
+                        }
+                      }}
+                      className="w-full bg-gray-900 text-xs font-semibold text-orange-400 p-2 rounded-xl border border-gray-800 focus:outline-none"
+                    >
+                      {profiles.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.full_name} ({p.role === 'admin' ? 'Central Admin' : p.profession.split(' ')[0]})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Guest Mobile Header */
+              <div className="p-3.5 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+                <span className="text-xs font-bold text-orange-400 block">
+                  Seja bem-vindo ao TécnicoLink!
+                </span>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Crie uma página profissional com portfólio de fotos e link direto para o seu WhatsApp.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    onClick={() => navigateTo('login')}
+                    className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Entrar</span>
+                  </button>
+                  <button
+                    onClick={() => navigateTo('register')}
+                    className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 shadow-xs"
+                  >
+                    <span>Criar Conta</span>
+                  </button>
                 </div>
               </div>
-
-              {/* Profile Switcher (Only visible to Admin) */}
-              {isAdmin && (
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                    Alternar Usuário (Modo Admin):
-                  </label>
-                  <select
-                    id="mobile-profile-select"
-                    value={activeProfile.id}
-                    onChange={(e) => {
-                      const found = profiles.find(p => p.id === e.target.value);
-                      if (found) {
-                        onSelectProfile(found);
-                        setMobileMenuOpen(false);
-                      }
-                    }}
-                    className="w-full bg-gray-900 text-xs font-semibold text-orange-400 p-2 rounded-xl border border-gray-800 focus:outline-none"
-                  >
-                    {profiles.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.full_name} ({p.role === 'admin' ? 'Central Admin' : p.profession.split(' ')[0]})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Main Navigation Links */}
             <div className="space-y-1.5">
@@ -435,46 +490,53 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div className="flex items-center gap-3">
                   <Wrench className="w-4 h-4 text-orange-400" />
-                  <span>Início (Página do SaaS)</span>
+                  <span>Início</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 opacity-60" />
               </button>
 
-              <button
-                id="mobile-nav-panel"
-                onClick={() => navigateTo('panel')}
-                className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors ${
-                  currentView === 'panel'
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-gray-950 text-gray-200 hover:bg-gray-850 border border-gray-800'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <LayoutDashboard className="w-4 h-4 text-orange-400" />
-                  <span>Painel do Técnico</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-              </button>
+              {isLoggedIn && (
+                <>
+                  <button
+                    id="mobile-nav-panel"
+                    onClick={() => navigateTo('panel')}
+                    className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors ${
+                      currentView === 'panel'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-950 text-gray-200 hover:bg-gray-850 border border-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <LayoutDashboard className="w-4 h-4 text-orange-400" />
+                      <span>{isAdmin ? 'Painel Técnico' : 'Meu Painel'}</span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
 
-              <button
-                id="mobile-nav-public"
-                onClick={() => navigateTo('public_profile')}
-                className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors ${
-                  currentView === 'public_profile'
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-gray-950 text-gray-200 hover:bg-gray-850 border border-gray-800'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-4 h-4 text-emerald-400" />
-                  <div>
-                    <span className="block">Ver Meu Site Técnico</span>
-                    <span className="text-[10px] text-gray-400 block font-normal">/p/{activeProfile.username}</span>
-                  </div>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60" />
-              </button>
+                  <button
+                    id="mobile-nav-public"
+                    onClick={() => navigateTo('public_profile')}
+                    className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors ${
+                      currentView === 'public_profile'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-950 text-gray-200 hover:bg-gray-850 border border-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <span className="block">Ver Meu Site</span>
+                        {activeProfile && (
+                          <span className="text-[10px] text-gray-400 block font-normal">/p/{activeProfile.username}</span>
+                        )}
+                      </div>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+                </>
+              )}
 
+              {/* ADMIN TAB MOBILE */}
               {isAdmin && (
                 <button
                   id="mobile-nav-admin"
@@ -490,7 +552,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Central Admin Master</span>
                   </div>
                   <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
-                    Gestão & MRR
+                    Acesso Master
                   </span>
                 </button>
               )}
@@ -510,7 +572,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Database className="w-4 h-4 text-emerald-400 mb-1" />
                   <span className="text-xs font-bold text-white block">Schema SQL</span>
-                  <span className="text-[10px] text-gray-400 block">Supabase Script</span>
+                  <span className="text-[10px] text-gray-400 block">Supabase</span>
                 </button>
 
                 <button
@@ -520,34 +582,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Cloud className="w-4 h-4 text-sky-400 mb-1" />
                   <span className="text-xs font-bold text-white block">Deploy Vercel</span>
-                  <span className="text-[10px] text-gray-400 block">Domínio Próprio</span>
+                  <span className="text-[10px] text-gray-400 block">Domínio</span>
                 </button>
               </div>
             </div>
 
-            {/* User Auth Action (Clean Bottom Bar) */}
-            <div className="pt-2 border-t border-gray-800 flex items-center justify-end">
-              {currentUser ? (
+            {/* Logout on Mobile if logged in */}
+            {isLoggedIn && (
+              <div className="pt-2 border-t border-gray-800">
                 <button
                   onClick={() => {
                     onLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full py-2 px-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs font-bold text-red-400 hover:text-red-300 flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 px-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs font-bold text-red-400 hover:text-red-300 flex items-center justify-center gap-1.5"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sair da Conta</span>
                 </button>
-              ) : (
-                <button
-                  onClick={() => navigateTo('login')}
-                  className="w-full py-2.5 px-3 bg-orange-600 hover:bg-orange-500 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Fazer Login</span>
-                </button>
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
         </div>

@@ -43,32 +43,40 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const orcamentosComTecnicoLink = Math.round(orcamentosMes * 0.55); // 55% closing rate with portfolio
   const ganhoExtraMensal = (orcamentosComTecnicoLink - orcamentosAtuaisFechados) * ticketMedio;
 
+  const demoCategoryMeta: Record<string, { label: string; icon: string; highlight: string }> = {
+    'prof-1': { label: 'Refrigeração & Ar-Condicionado', icon: '❄️', highlight: 'Climatização' },
+    'prof-2': { label: 'Celulares & Smartphones', icon: '📱', highlight: 'Reparo Express' },
+    'prof-3': { label: 'Eletrônica & Placas Industriais', icon: '⚡', highlight: 'Laboratório' },
+    'prof-4': { label: 'Modelagem 3D & Protótipos', icon: '🖨️', highlight: 'Impressão 3D' },
+    'prof-5': { label: 'Confeiteira de Festas & Bolos', icon: '🎂', highlight: 'Doces Finos' }
+  };
+
   const demoPhotosMap: Record<string, { img: string; tag: string }[]> = {
     'prof-1': [
-      { img: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=400&q=80', tag: 'Ar Split 18k' },
-      { img: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=400&q=80', tag: 'Higienização' }
+      { img: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=600&q=80', tag: 'Instalação Split Inverter' },
+      { img: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80', tag: 'Higienização Química com Vácuo' }
     ],
     'prof-2': [
-      { img: 'https://images.unsplash.com/photo-1597740985671-2a8a3b80532e?auto=format&fit=crop&w=400&q=80', tag: 'Troca de Tela OLED' },
-      { img: 'https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=400&q=80', tag: 'Reparo Placa Mãe' }
+      { img: 'https://images.unsplash.com/photo-1597740985671-2a8a3b80532e?auto=format&fit=crop&w=600&q=80', tag: 'Troca de Tela OLED iPhone' },
+      { img: 'https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=600&q=80', tag: 'Microsoldagem de Placa Android' }
     ],
     'prof-3': [
-      { img: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80', tag: 'Inversor Solar' },
-      { img: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=400&q=80', tag: 'Osciloscópio Lab' }
+      { img: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80', tag: 'Conserto Placa Smart TV 4K' },
+      { img: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=600&q=80', tag: 'Diagnóstico em Osciloscópio' }
     ],
     'prof-4': [
-      { img: 'https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=400&q=80', tag: 'Impressão Resina 8K' },
-      { img: 'https://images.unsplash.com/photo-1581092335878-2d9ff86ca2bf?auto=format&fit=crop&w=400&q=80', tag: 'Prototipagem 3D' }
+      { img: 'https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=600&q=80', tag: 'Impressão 3D Resina 8K' },
+      { img: 'https://images.unsplash.com/photo-1581092335878-2d9ff86ca2bf?auto=format&fit=crop&w=600&q=80', tag: 'Prototipagem Mecânica CAD' }
     ],
     'prof-5': [
-      { img: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=400&q=80', tag: 'Bolo Chantininho' },
-      { img: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=400&q=80', tag: 'Doces Finos Casamento' }
+      { img: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=600&q=80', tag: 'Bolo Decorado em Chantininho' },
+      { img: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80', tag: 'Kit Festa Doces Finos Casamento' }
     ]
   };
 
   const currentDemoPhotos = demoPhotosMap[activeProfile?.id] || [
-    { img: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=400&q=80', tag: 'Serviço 1' },
-    { img: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=400&q=80', tag: 'Serviço 2' }
+    { img: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=600&q=80', tag: 'Serviço Profissional' },
+    { img: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80', tag: 'Garantia de Qualidade' }
   ];
 
   return (
@@ -155,6 +163,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <div className="flex flex-wrap gap-2">
                 {profiles.map((p, idx) => {
                   const isSelected = (activeProfile?.id === p.id);
+                  const meta = demoCategoryMeta[p.id] || { 
+                    label: p.profession, 
+                    icon: '🔧', 
+                    highlight: p.city_state.split('-')[1] || 'Serviço' 
+                  };
+
                   return (
                     <button
                       key={p.id}
@@ -162,19 +176,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         setSelectedDemoIndex(idx);
                         onSelectProfile(p);
                       }}
-                      className={`px-3 py-1.5 border text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 shadow-2xs ${
+                      className={`px-3 py-2 border text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-2xs ${
                         isSelected 
-                          ? 'bg-orange-600 text-white border-orange-600 ring-2 ring-orange-400' 
-                          : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'
+                          ? 'bg-orange-600 text-white border-orange-600 ring-2 ring-orange-400 font-bold shadow-sm scale-[1.02]' 
+                          : 'bg-white hover:bg-gray-100 text-gray-800 border-gray-300'
                       }`}
                     >
-                      <span>{p.profession.split(' ')[0]}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                      <span className="text-sm">{meta.icon}</span>
+                      <span>{meta.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ml-0.5 ${
                         isSelected 
                           ? 'bg-orange-700 text-white border-orange-500' 
                           : 'text-orange-700 bg-orange-50 border-orange-200'
                       }`}>
-                        {p.city_state.split('-')[1]}
+                        {meta.highlight}
                       </span>
                     </button>
                   );

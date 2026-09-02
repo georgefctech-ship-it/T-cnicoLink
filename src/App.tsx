@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ShieldAlert, Lock } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { HomeView } from './components/HomeView';
 import { PainelView } from './components/PainelView';
@@ -19,9 +20,12 @@ import {
   getStoredSupabaseConfig,
   getLocalSystemSettings,
   saveLocalSystemSettings,
-  getSupabase
+  getSupabase,
+  getStoredAuthUser,
+  saveStoredAuthUser,
+  clearStoredAuthUser
 } from './lib/supabaseClient';
-import { INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS } from './lib/mockData';
+import { INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './lib/mockData';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('home');
@@ -48,17 +52,35 @@ export default function App() {
 
     checkSupabaseStatus();
 
-    // Check existing active Supabase session
+    // 1. Check local stored auth session
+    const storedAuth = getStoredAuthUser();
+    if (storedAuth) {
+      setCurrentUser(storedAuth);
+      const isOwnerAdmin = storedAuth.role === 'admin' || storedAuth.email?.trim().toLowerCase() === 'georgefctec@gmail.com';
+      if (isOwnerAdmin) {
+        setActiveProfile(ADMIN_MASTER_PROFILE);
+      } else {
+        const matchingProfile = loadedProfiles.find(p => p.id === storedAuth.id || p.user_id === storedAuth.id);
+        if (matchingProfile) {
+          setActiveProfile(matchingProfile);
+        }
+      }
+    }
+
+    // 2. Check active Supabase session if connected
     const supabase = getSupabase();
     if (supabase) {
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (session?.user) {
           const isOwnerAdmin = session.user.email?.trim().toLowerCase() === 'georgefctec@gmail.com' || session.user.email?.toLowerCase().includes('admin@');
-          setCurrentUser({
+          const authUser = {
             id: session.user.id,
             email: session.user.email,
-            name: session.user.user_metadata?.full_name || session.user.email
-          });
+            name: session.user.user_metadata?.full_name || session.user.email,
+            role: isOwnerAdmin ? 'admin' : 'technician'
+          };
+          setCurrentUser(authUser);
+          saveStoredAuthUser(authUser);
 
           try {
             const { data: dbProf } = await supabase
@@ -83,6 +105,8 @@ export default function App() {
                 const exists = prev.some(p => p.id === fullProf.id);
                 return exists ? prev.map(p => p.id === fullProf.id ? fullProf : p) : [fullProf, ...prev];
               });
+            } else if (isOwnerAdmin) {
+              setActiveProfile(ADMIN_MASTER_PROFILE);
             }
           } catch (e) {
             console.warn('Session profile fetch warning:', e);
@@ -165,18 +189,40 @@ export default function App() {
   }
 
   function handleAuthSuccess(profile: Profile) {
-    setCurrentUser({ id: profile.id, name: profile.full_name });
-    saveLocalProfile(profile);
-    setProfiles(prev => {
-      const exists = prev.some(p => p.id === profile.id);
-      return exists ? prev.map(p => p.id === profile.id ? profile : p) : [profile, ...prev];
-    });
-    setActiveProfile(profile);
-    setCurrentView('panel');
+    const isOwnerAdmin = profile.role === 'admin' || profile.username === 'george-admin';
+    const authUser = {
+      id: profile.id,
+      name: profile.full_name,
+      email: isOwnerAdmin ? 'georgefctec@gmail.com' : `${profile.username}@tecnicolink.com.br`,
+      role: isOwnerAdmin ? 'admin' : 'technician'
+    };
+
+    saveStoredAuthUser(authUser);
+    setCurrentUser(authUser);
+
+    if (isOwnerAdmin) {
+      setActiveProfile(ADMIN_MASTER_PROFILE);
+      setCurrentView('admin_control');
+    } else {
+      saveLocalProfile(profile);
+      setProfiles(prev => {
+        const exists = prev.some(p => p.id === profile.id);
+        return exists ? prev.map(p => p.id === profile.id ? profile : p) : [profile, ...prev];
+      });
+      setActiveProfile(profile);
+      setCurrentView('panel');
+    }
   }
 
   function handleLogout() {
+    clearStoredAuthUser();
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase.auth.signOut().catch(() => {});
+    }
     setCurrentUser(null);
+    const loadedProfiles = getLocalProfiles();
+    setActiveProfile(loadedProfiles[0]);
     setCurrentView('home');
   }
 
@@ -234,8 +280,13 @@ export default function App() {
 
   const testimonials = INITIAL_TESTIMONIALS[activeProfile.id] || [];
 
-  // Find admin profile or fallback to active profile
-  const adminProfile = profiles.find(p => p.role === 'admin') || activeProfile;
+  const isAdmin = Boolean(
+    currentUser && (
+      currentUser.role === 'admin' || 
+      currentUser.email?.toLowerCase().trim() === 'georgefctec@gmail.com' ||
+      currentUser.email?.toLowerCase().includes('admin@')
+    )
+  );
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#1F2937] flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
@@ -257,7 +308,13 @@ export default function App() {
       <main className="flex-1">
         {currentView === 'home' && (
           <HomeView
-            onStart={() => setCurrentView('panel')}
+            onStart={() => {
+              if (currentUser) {
+                setCurrentView('panel');
+              } else {
+                setCurrentView('register');
+              }
+            }}
             onSelectProfile={(p) => {
               handleSelectProfile(p);
               setCurrentView('public_profile');
@@ -298,7 +355,7 @@ export default function App() {
             profile={activeProfile}
             gallery={gallery}
             testimonials={testimonials}
-            onBackToPanel={() => setCurrentView('panel')}
+            onBackToPanel={() => setCurrentView(currentUser ? 'panel' : 'home')}
             systemSettings={systemSettings}
             onTrackView={() => handleTrackView(activeProfile.id)}
             onTrackWhatsAppClick={() => handleTrackWhatsAppClick(activeProfile.id)}
@@ -306,14 +363,53 @@ export default function App() {
         )}
 
         {currentView === 'admin_control' && (
-          <AdminControlView
-            profiles={profiles}
-            onUpdateProfile={handleSaveProfile}
-            systemSettings={systemSettings}
-            onSaveSystemSettings={handleSaveSystemSettings}
-            onImpersonateUser={handleImpersonateUser}
-            currentAdmin={adminProfile}
-          />
+          isAdmin ? (
+            <AdminControlView
+              profiles={profiles}
+              onUpdateProfile={handleSaveProfile}
+              systemSettings={systemSettings}
+              onSaveSystemSettings={handleSaveSystemSettings}
+              onImpersonateUser={handleImpersonateUser}
+              currentAdmin={ADMIN_MASTER_PROFILE}
+            />
+          ) : (
+            <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+              <div className="bg-white border border-amber-200 rounded-3xl p-8 sm:p-10 shadow-lg relative overflow-hidden">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-center mx-auto mb-5 shadow-xs">
+                  <ShieldAlert className="w-8 h-8 text-amber-600" />
+                </div>
+                
+                <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-black rounded-full uppercase tracking-wider border border-amber-200">
+                  Acesso Restrito ao Administrador Master
+                </span>
+
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-4 tracking-tight font-['Syne',sans-serif]">
+                  Área de Segurança & Gestão SaaS
+                </h2>
+
+                <p className="mt-3 text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                  Esta central contém controle de faturamento PIX, limites de planos e moderação de técnicos. Acesso restrito ao proprietário do sistema: <strong className="text-gray-900 font-semibold">George Ferreira Costa</strong> (<code className="text-amber-700 bg-amber-50 px-1 py-0.5 rounded font-mono text-xs">georgefctec@gmail.com</code>).
+                </p>
+
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => setCurrentView('login')}
+                    className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>Fazer Login como Administrador Master</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setCurrentView('home')}
+                    className="w-full sm:w-auto px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all"
+                  >
+                    Voltar para o Início
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {currentView === 'sql_schema' && (

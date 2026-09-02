@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { getSupabase } from '../lib/supabaseClient';
 import { Profile } from '../types';
+import { ADMIN_MASTER_PROFILE } from '../lib/mockData';
 
 interface AuthViewProps {
   initialMode: 'login' | 'register';
@@ -262,7 +263,13 @@ export const AuthView: React.FC<AuthViewProps> = ({
         }
       }
 
-      // If mock login
+      // If offline / local mock login
+      if (isAdminEmail) {
+        setLoading(false);
+        onSuccess(ADMIN_MASTER_PROFILE);
+        return;
+      }
+
       const match = profiles.find(p => p.full_name.toLowerCase().includes(email.split('@')[0].toLowerCase())) || profiles[0];
       setLoading(false);
       onSuccess(match);

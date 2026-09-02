@@ -2,10 +2,35 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { INITIAL_PROFILES, INITIAL_GALLERY, DEFAULT_SYSTEM_SETTINGS } from './mockData';
 import { Profile, ServicePhoto, SystemSettings } from '../types';
 
-const STORAGE_KEY_PROFILES = 'tecnicolink_profiles_v2';
-const STORAGE_KEY_GALLERY = 'tecnicolink_gallery_v2';
+const STORAGE_KEY_PROFILES = 'tecnicolink_profiles_v3';
+const STORAGE_KEY_GALLERY = 'tecnicolink_gallery_v3';
 const STORAGE_KEY_CONFIG = 'tecnicolink_supabase_cfg_v1';
 const STORAGE_KEY_SETTINGS = 'tecnicolink_system_settings_v1';
+const STORAGE_KEY_AUTH_USER = 'tecnicolink_auth_user_v3';
+
+export function getStoredAuthUser(): any {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_AUTH_USER);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('Error reading auth user', e);
+  }
+  return null;
+}
+
+export function saveStoredAuthUser(user: any) {
+  if (user) {
+    localStorage.setItem(STORAGE_KEY_AUTH_USER, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(STORAGE_KEY_AUTH_USER);
+  }
+}
+
+export function clearStoredAuthUser() {
+  localStorage.removeItem(STORAGE_KEY_AUTH_USER);
+}
 
 export function getLocalSystemSettings(): SystemSettings {
   try {
