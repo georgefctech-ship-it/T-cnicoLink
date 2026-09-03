@@ -42,6 +42,7 @@ import {
 import { Profile, SystemSettings, UserRole, UserStatus, UserPlan } from '../types';
 import { SUPABASE_SQL_SCRIPT } from '../lib/sqlScripts';
 import { ProfessionSelect } from './ProfessionSelect';
+import { getDisplayHost } from '../lib/profileUrlHelper';
 
 interface AdminControlViewProps {
   profiles: Profile[];
@@ -1231,7 +1232,7 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                   />
                   <div>
                     <div className="font-bold text-gray-900">{deletingProfile.full_name}</div>
-                    <div className="text-[11px] text-gray-500 font-mono">tecnico-link.com/p/{deletingProfile.username}</div>
+                    <div className="text-[11px] text-gray-500 font-mono">{getDisplayHost()}/p/{deletingProfile.username}</div>
                   </div>
                 </div>
                 <p className="text-red-700 text-[11px] leading-relaxed pt-1">

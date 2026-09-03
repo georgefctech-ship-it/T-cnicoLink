@@ -18,6 +18,7 @@ import {
   Check
 } from 'lucide-react';
 import { Profile, AppView } from '../types';
+import { getDisplayHost } from '../lib/profileUrlHelper';
 
 interface HomeViewProps {
   onStart: () => void;
@@ -218,7 +219,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">3</span>
-                      <span>Pronto! O sistema gera seu link <code className="text-orange-700 font-mono font-semibold bg-orange-50 px-1 rounded">tecnico-link.com/p/seu-nome</code> e QR Code.</span>
+                      <span>Pronto! O sistema gera seu link <code className="text-orange-700 font-mono font-semibold bg-orange-50 px-1 rounded">{getDisplayHost()}/p/seu-nome</code> e QR Code.</span>
                     </li>
                   </ul>
                 </div>
@@ -245,7 +246,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
                     <span className="ml-2 text-gray-700 font-semibold truncate max-w-[200px] sm:max-w-none">
-                      tecnico-link.com/p/{activeProfile.username}
+                      {getDisplayHost()}/p/{activeProfile.username}
                     </span>
                   </span>
                   <button
@@ -369,7 +370,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <p className="font-semibold text-gray-900">Cliente no WhatsApp:</p>
                   <p className="italic text-gray-600">"Você tem fotos de outros serviços parecidos pra eu ver?"</p>
                   <div className="pt-2 border-t border-orange-100 text-emerald-700 space-y-1">
-                    <p>✅ Você envia seu link: <span className="text-orange-700 font-mono font-semibold">tecnico-link.com/p/carlos-eletricista</span></p>
+                    <p>✅ Você envia seu link: <span className="text-orange-700 font-mono font-semibold">{getDisplayHost()}/p/carlos-eletricista</span></p>
                     <p>✅ O cliente abre em 1 segundo: vê fotos com legenda, garantia e avaliações.</p>
                     <p>✅ O cliente vê que você é um técnico sério e credenciado.</p>
                     <p>✅ O cliente clica no botão verde e já aprova o orçamento.</p>

@@ -27,6 +27,7 @@ import {
   clearStoredAuthUser
 } from './lib/supabaseClient';
 import { INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './lib/mockData';
+import { decodeProfilePayload } from './lib/profileUrlHelper';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('home');
@@ -80,16 +81,56 @@ export default function App() {
   async function parseAndApplyRoute(pathname: string, availableProfiles: Profile[]) {
     const cleanPath = pathname.trim();
 
-    if (cleanPath.startsWith('/p/')) {
-      const rawUsername = cleanPath.replace(/^\/p\//, '').split('/')[0].split('?')[0].trim().toLowerCase();
-      if (!rawUsername) {
-        setCurrentView('home');
-        return;
+    // 0. Check if URL has a base64 encoded profile payload (?d=... or ?data=...) from QR Code scan
+    if (typeof window !== 'undefined' && window.location.search) {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedData = urlParams.get('d') || urlParams.get('data');
+        if (encodedData) {
+          const restoredProfile = decodeProfilePayload(encodedData);
+          if (restoredProfile && restoredProfile.username) {
+            saveLocalProfile(restoredProfile);
+            setProfiles(prev => {
+              const exists = prev.some(p => p.username === restoredProfile.username || p.id === restoredProfile.id);
+              return exists ? prev.map(p => p.username === restoredProfile.username ? restoredProfile : p) : [restoredProfile, ...prev];
+            });
+            setActiveProfile(restoredProfile);
+            setGallery(getLocalGallery(restoredProfile.id));
+            setCurrentView('public_profile');
+            setIsPublicVisitor(true);
+            setProfileNotFoundUsername(null);
+            setIsLoadingRoute(false);
+            window.history.replaceState({}, '', `/p/${restoredProfile.username}`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Erro decodificando dados da rota:', e);
       }
+    }
 
+    // Determine target username from pathname (/p/...) OR query param (?p=...) OR hash (#/p/...)
+    let rawUsername = '';
+    if (cleanPath.startsWith('/p/')) {
+      rawUsername = cleanPath.replace(/^\/p\//, '').split('/')[0].split('?')[0].trim().toLowerCase();
+    } else if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryUser = urlParams.get('p') || urlParams.get('u') || urlParams.get('perfil');
+      if (queryUser) {
+        rawUsername = queryUser.trim().toLowerCase();
+      } else if (window.location.hash.startsWith('#/p/')) {
+        rawUsername = window.location.hash.replace(/^#\/p\//, '').split('/')[0].split('?')[0].trim().toLowerCase();
+      }
+    }
+
+    if (rawUsername) {
       setIsLoadingRoute(true);
-      // 1. Try finding in local profiles
-      const foundLocal = availableProfiles.find(p => p.username.toLowerCase() === rawUsername);
+
+      // 1. Try finding in current or fresh local profiles
+      const freshProfiles = getLocalProfiles();
+      const allCandidates = [...availableProfiles, ...freshProfiles];
+      const foundLocal = allCandidates.find(p => p.username.toLowerCase() === rawUsername);
+      
       if (foundLocal) {
         setActiveProfile(foundLocal);
         const photos = getLocalGallery(foundLocal.id);

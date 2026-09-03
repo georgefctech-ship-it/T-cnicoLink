@@ -33,6 +33,12 @@ import confetti from 'canvas-confetti';
 import QRCode from 'qrcode';
 import { Profile, ServicePhoto, AppView, SystemSettings } from '../types';
 import { getSupabase } from '../lib/supabaseClient';
+import { 
+  getCleanShareUrl, 
+  getQrCodeScanUrl, 
+  getCleanDisplayUrl,
+  getDisplayHost
+} from '../lib/profileUrlHelper';
 import { PlanUpgradeModal } from './PlanUpgradeModal';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
 import { ProfessionSelect } from './ProfessionSelect';
@@ -297,21 +303,14 @@ export const PainelView: React.FC<PainelViewProps> = ({
 
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
-  const displayDomain = typeof window !== 'undefined' && window.location.host && !window.location.host.includes('run.app') && !window.location.host.includes('localhost')
-    ? window.location.host
-    : 'tecnico-link.com';
-
-  const currentBaseUrl = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('run.app') && !window.location.origin.includes('localhost')
-    ? window.location.origin
-    : 'https://tecnico-link.com';
-
-  const cleanShortDisplayUrl = `${displayDomain}/p/${formData.username}`;
-  const generatedUrl = `${window.location.origin}/p/${formData.username}`;
+  const cleanShareUrl = getCleanShareUrl(formData.username);
+  const qrScanUrl = getQrCodeScanUrl(formData);
+  const cleanShortDisplayUrl = getCleanDisplayUrl(formData.username);
 
   useEffect(() => {
-    if (generatedUrl) {
-      QRCode.toDataURL(generatedUrl, {
-        width: 360,
+    if (qrScanUrl) {
+      QRCode.toDataURL(qrScanUrl, {
+        width: 380,
         margin: 2,
         color: {
           dark: '#111827',
@@ -321,7 +320,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
       .then(url => setQrCodeDataUrl(url))
       .catch(err => console.error('Erro gerando QR Code:', err));
     }
-  }, [generatedUrl]);
+  }, [qrScanUrl]);
 
   const rawPhone = formData.whatsapp_number.replace(/\D/g, '');
   const cleanPhone = rawPhone.startsWith('55') ? rawPhone : `55${rawPhone}`;
@@ -504,7 +503,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
                       Link / Slug Personalizado do Site <span className="text-orange-600">*</span>
                     </label>
                     <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-orange-500 focus-within:bg-white text-sm font-mono">
-                      <span className="text-gray-400 select-none">tecnico-link.com/p/</span>
+                      <span className="text-gray-400 select-none">{getDisplayHost()}/p/</span>
                       <input
                         type="text"
                         value={formData.username}
@@ -946,12 +945,12 @@ export const PainelView: React.FC<PainelViewProps> = ({
 
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center justify-between gap-2 mb-3">
               <div className="truncate font-mono text-xs text-gray-800">
-                {displayDomain}/p/<strong className="text-orange-600">{formData.username}</strong>
+                {getDisplayHost()}/p/<strong className="text-orange-600">{formData.username}</strong>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText(generatedUrl);
+                  navigator.clipboard.writeText(cleanShareUrl);
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 2000);
                 }}
@@ -1090,22 +1089,34 @@ export const PainelView: React.FC<PainelViewProps> = ({
             </div>
 
             {/* Generated Link Input */}
-            <div className="mt-5 p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between gap-2">
+            <div className="mt-5 p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
               <span className="text-xs font-mono text-orange-700 truncate font-semibold">
-                {cleanShortDisplayUrl}
+                {cleanShareUrl}
               </span>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(generatedUrl);
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2000);
-                }}
-                className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shrink-0 flex items-center gap-1 shadow-2xs"
-              >
-                {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedLink ? 'Copiado!' : 'Copiar'}</span>
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(cleanShareUrl);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  }}
+                  className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shrink-0 flex items-center gap-1 shadow-2xs transition-colors"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? 'Copiado!' : 'Copiar'}</span>
+                </button>
+                <a
+                  href={cleanShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+                  title="Testar link no navegador"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Abrir</span>
+                </a>
+              </div>
             </div>
 
             {/* Real QR Code Generator for Vehicle Sticker / Business Card */}

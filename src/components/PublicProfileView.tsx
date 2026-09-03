@@ -27,6 +27,11 @@ import {
 import QRCode from 'qrcode';
 import { Profile, ServicePhoto, Testimonial, SystemSettings } from '../types';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
+import { 
+  getCleanShareUrl, 
+  getQrCodeScanUrl, 
+  getCleanDisplayUrl 
+} from '../lib/profileUrlHelper';
 
 interface PublicProfileViewProps {
   profile: Profile;
@@ -56,21 +61,14 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
   const [viewMode, setViewMode] = useState<'mobile' | 'full'>('full');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
-  const displayDomain = typeof window !== 'undefined' && window.location.host && !window.location.host.includes('run.app') && !window.location.host.includes('localhost')
-    ? window.location.host
-    : 'tecnico-link.com';
-
-  const currentBaseUrl = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('run.app') && !window.location.origin.includes('localhost')
-    ? window.location.origin
-    : 'https://tecnico-link.com';
-
-  const currentUrl = `${currentBaseUrl}/p/${profile.username}`;
-  const cleanDisplayUrl = `${displayDomain}/p/${profile.username}`;
+  const cleanShareUrl = getCleanShareUrl(profile.username);
+  const qrScanUrl = getQrCodeScanUrl(profile);
+  const cleanDisplayUrl = getCleanDisplayUrl(profile.username);
 
   useEffect(() => {
-    if (currentUrl) {
-      QRCode.toDataURL(currentUrl, {
-        width: 360,
+    if (qrScanUrl) {
+      QRCode.toDataURL(qrScanUrl, {
+        width: 380,
         margin: 2,
         color: {
           dark: '#111827',
@@ -80,7 +78,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
       .then(url => setQrCodeDataUrl(url))
       .catch(err => console.error('Erro gerando QR Code:', err));
     }
-  }, [currentUrl]);
+  }, [qrScanUrl]);
 
   // Track view once on mount
   useEffect(() => {
@@ -492,7 +490,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
               <div className="space-y-2">
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(currentUrl);
+                    navigator.clipboard.writeText(cleanShareUrl);
                     setCopiedLink(true);
                     setTimeout(() => setCopiedLink(false), 2000);
                   }}

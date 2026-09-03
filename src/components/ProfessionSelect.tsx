@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Check, Plus, ChevronDown, Wrench, Sparkles, X } from 'lucide-react';
-import { PROFESSIONS_CATEGORIES, searchProfessions, ALL_PROFESSIONS_FLAT } from '../lib/professionsData';
+import { Check, Plus, ChevronDown, Wrench, X, Loader2, Sparkles, Radio } from 'lucide-react';
+import { searchProfessionsApi, ProfessionApiItem } from '../services/professionsApi';
 
 interface ProfessionSelectProps {
   value: string;
@@ -13,22 +13,26 @@ interface ProfessionSelectProps {
 export const ProfessionSelect: React.FC<ProfessionSelectProps> = ({
   value,
   onChange,
-  placeholder = 'Digite ou selecione sua profissão...',
+  placeholder = 'Digite para buscar sua profissão em tempo real...',
   required = false,
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value || '');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isCustomMode, setIsCustomMode] = useState(false);
+  const [results, setResults] = useState<ProfessionApiItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Sync external value
   useEffect(() => {
     setSearchTerm(value || '');
   }, [value]);
 
-  // Close dropdown on outside click
+  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -39,14 +43,37 @@ export const ProfessionSelect: React.FC<ProfessionSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredItems = searchProfessions(searchTerm);
+  // Real-time API search on searchTerm change with debounce
+  useEffect(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-  // If a category filter is active in the popup
-  const displayedItems = selectedCategory
-    ? ALL_PROFESSIONS_FLAT.filter(p => p.category === selectedCategory)
-    : filteredItems;
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-  const exactMatch = ALL_PROFESSIONS_FLAT.some(
+    setIsSearching(true);
+    const debounceTimer = setTimeout(async () => {
+      try {
+        const data = await searchProfessionsApi(searchTerm, controller.signal);
+        setResults(data);
+        setHighlightedIndex(-1);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Erro na busca de profissões:', err);
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    }, 120);
+
+    return () => {
+      clearTimeout(debounceTimer);
+      controller.abort();
+    };
+  }, [searchTerm]);
+
+  const exactMatch = results.some(
     p => p.name.toLowerCase() === searchTerm.trim().toLowerCase()
   );
 
@@ -54,14 +81,31 @@ export const ProfessionSelect: React.FC<ProfessionSelectProps> = ({
     onChange(profession);
     setSearchTerm(profession);
     setIsOpen(false);
-    setIsCustomMode(false);
   }
 
-  function handleCustomConfirm() {
-    if (searchTerm.trim()) {
-      onChange(searchTerm.trim());
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && highlightedIndex < results.length) {
+        handleSelect(results[highlightedIndex].name);
+      } else if (searchTerm.trim()) {
+        handleSelect(searchTerm.trim());
+      }
+    } else if (e.key === 'Escape') {
       setIsOpen(false);
-      setIsCustomMode(false);
     }
   }
 
@@ -69,22 +113,29 @@ export const ProfessionSelect: React.FC<ProfessionSelectProps> = ({
     <div ref={containerRef} className={`relative w-full ${className}`}>
       {/* Input Box */}
       <div className="relative">
-        <Wrench className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+        <div className="absolute left-3 top-3 pointer-events-none text-gray-400">
+          {isSearching ? (
+            <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+          ) : (
+            <Wrench className="w-4 h-4" />
+          )}
+        </div>
+
         <input
           ref={inputRef}
           type="text"
           required={required}
           value={searchTerm}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
           onChange={(e) => {
             const val = e.target.value;
             setSearchTerm(val);
             onChange(val);
             setIsOpen(true);
-            setSelectedCategory(null);
           }}
           placeholder={placeholder}
-          className="w-full bg-white border border-gray-300 rounded-xl pl-9 pr-16 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium"
+          className="w-full bg-white border border-gray-300 rounded-xl pl-9 pr-16 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium placeholder:text-gray-400"
         />
 
         <div className="absolute right-2.5 top-2.5 flex items-center gap-1">
@@ -112,51 +163,33 @@ export const ProfessionSelect: React.FC<ProfessionSelectProps> = ({
         </div>
       </div>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu - Sem categorias, busca direta via API */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden max-h-80 flex flex-col text-xs">
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden max-h-80 flex flex-col text-xs animate-in fade-in slide-in-from-top-1 duration-150">
           
-          {/* Categories Pill Bar */}
-          <div className="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory(null)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors ${
-                selectedCategory === null
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
-              }`}
-            >
-              Todas as Áreas
-            </button>
-            {PROFESSIONS_CATEGORIES.map(cat => (
-              <button
-                key={cat.category}
-                type="button"
-                onClick={() => setSelectedCategory(cat.category === selectedCategory ? null : cat.category)}
-                className={`px-2 py-1 rounded-full text-[11px] font-medium whitespace-nowrap flex items-center gap-1 transition-colors ${
-                  selectedCategory === cat.category
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.category.split(' ')[0]}</span>
-              </button>
-            ))}
+          {/* Header Status Bar (API Search Indicator) */}
+          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-1.5 text-gray-600 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Busca em Tempo Real</span>
+            </div>
+            <div className="text-[10px] text-gray-400">
+              {isSearching ? 'Buscando...' : `${results.length} sugestões encontradas`}
+            </div>
           </div>
 
-          {/* Options List */}
+          {/* Results List */}
           <div className="overflow-y-auto flex-1 p-1 divide-y divide-gray-50">
-            {/* If user typed something not matching, show option to use custom */}
+            
+            {/* If user typed something custom not matching perfectly, offer instant custom option */}
             {searchTerm.trim() && !exactMatch && (
               <button
                 type="button"
                 onClick={() => handleSelect(searchTerm.trim())}
-                className="w-full text-left p-2.5 bg-orange-50/70 hover:bg-orange-100 text-orange-900 rounded-xl flex items-center justify-between transition-colors my-1 border border-orange-200"
+                className="w-full text-left p-2.5 bg-orange-50/80 hover:bg-orange-100 text-orange-950 rounded-xl flex items-center justify-between transition-colors my-1 border border-orange-200 shadow-2xs"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-orange-600 text-white flex items-center justify-center font-bold">
+                  <div className="w-6 h-6 rounded-lg bg-orange-600 text-white flex items-center justify-center font-bold shrink-0">
                     <Plus className="w-3.5 h-3.5" />
                   </div>
                   <div>
@@ -164,80 +197,68 @@ export const ProfessionSelect: React.FC<ProfessionSelectProps> = ({
                       Usar: "<span className="text-orange-700">{searchTerm.trim()}</span>"
                     </div>
                     <div className="text-[10px] text-gray-500">
-                      Profissão personalizada que você digitou
+                      Confirmar profissão personalizada digitada
                     </div>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase bg-orange-200 text-orange-800 px-1.5 py-0.5 rounded">
-                  Nova
+                <span className="text-[9px] font-bold uppercase bg-orange-200 text-orange-900 px-1.5 py-0.5 rounded">
+                  Personalizado
                 </span>
               </button>
             )}
 
-            {displayedItems.length > 0 ? (
-              displayedItems.map((item) => {
+            {/* List of matched professions */}
+            {results.length > 0 ? (
+              results.map((item, idx) => {
                 const isSelected = value?.trim().toLowerCase() === item.name.toLowerCase();
+                const isHighlighted = highlightedIndex === idx;
+
                 return (
                   <button
-                    key={item.name}
+                    key={item.id || item.name}
                     type="button"
                     onClick={() => handleSelect(item.name)}
-                    className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between hover:bg-orange-50/60 transition-colors ${
-                      isSelected ? 'bg-orange-50 font-bold text-orange-900' : 'text-gray-800'
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-colors ${
+                      isSelected
+                        ? 'bg-orange-50 font-bold text-orange-900'
+                        : isHighlighted
+                        ? 'bg-gray-100 text-gray-900 font-medium'
+                        : 'text-gray-800 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <span className="text-sm">{item.icon}</span>
+                      <span className="text-gray-400">▪</span>
                       <span className="truncate">{item.name}</span>
                     </div>
+
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                        {item.category.split('&')[0].trim()}
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-mono">
+                        {item.area}
                       </span>
                       {isSelected && <Check className="w-3.5 h-3.5 text-orange-600" />}
                     </div>
                   </button>
                 );
               })
-            ) : (
+            ) : !isSearching ? (
               <div className="p-4 text-center text-gray-500 text-xs">
-                Nenhuma profissão pré-cadastrada encontrada com esse termo.
+                Nenhuma profissão cadastrada encontrada para esse termo.
               </div>
-            )}
+            ) : null}
 
-            {/* Always offer 'Outras' option at the bottom */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsCustomMode(true);
-                if (!searchTerm || exactMatch) {
-                  setSearchTerm('');
-                  onChange('');
-                }
-                inputRef.current?.focus();
-              }}
-              className="w-full text-left p-2 text-gray-600 hover:text-orange-700 hover:bg-gray-50 rounded-lg flex items-center justify-between font-semibold mt-1"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm">✨</span>
-                <span>Outras (digite sua profissão ou especialidade livremente)</span>
-              </div>
-              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                Personalizar
-              </span>
-            </button>
           </div>
 
-          {/* Bottom helper tip */}
+          {/* Bottom helper info */}
           <div className="p-2 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-500 flex items-center justify-between">
-            <span>Você pode selecionar da lista ou digitar livremente.</span>
-            {searchTerm && (
+            <span>Digite livremente ou selecione uma opção sugerida.</span>
+            {searchTerm.trim() && (
               <button
                 type="button"
-                onClick={handleCustomConfirm}
+                onClick={() => handleSelect(searchTerm.trim())}
                 className="text-orange-600 font-bold hover:underline"
               >
-                Confirmar
+                Confirmar seleção
               </button>
             )}
           </div>
