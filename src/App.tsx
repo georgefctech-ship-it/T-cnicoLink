@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Lock } from 'lucide-react';
+import { ShieldAlert, Lock, UserX, Loader2 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { HomeView } from './components/HomeView';
 import { PainelView } from './components/PainelView';
@@ -36,6 +36,134 @@ export default function App() {
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [profileNotFoundUsername, setProfileNotFoundUsername] = useState<string | null>(null);
+  const [isPublicVisitor, setIsPublicVisitor] = useState(false);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+
+  function updateBrowserUrl(view: AppView, username?: string) {
+    if (typeof window === 'undefined') return;
+    let targetPath = '/';
+    if (view === 'public_profile') {
+      targetPath = username ? `/p/${username}` : '/p';
+    } else if (view === 'panel') {
+      targetPath = '/painel';
+    } else if (view === 'login') {
+      targetPath = '/login';
+    } else if (view === 'register') {
+      targetPath = '/cadastro';
+    } else if (view === 'admin_control') {
+      targetPath = '/admin';
+    } else if (view === 'sql_schema') {
+      targetPath = '/sql-schema';
+    } else if (view === 'deploy_docs') {
+      targetPath = '/deploy';
+    }
+
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+    }
+  }
+
+  function navigateTo(view: AppView, targetProfile?: Profile) {
+    if (targetProfile) {
+      handleSelectProfile(targetProfile);
+    }
+    setCurrentView(view);
+    setProfileNotFoundUsername(null);
+    if (view !== 'public_profile') {
+      setIsPublicVisitor(false);
+    }
+    updateBrowserUrl(view, targetProfile?.username || activeProfile?.username);
+  }
+
+  async function parseAndApplyRoute(pathname: string, availableProfiles: Profile[]) {
+    const cleanPath = pathname.trim();
+
+    if (cleanPath.startsWith('/p/')) {
+      const rawUsername = cleanPath.replace(/^\/p\//, '').split('/')[0].split('?')[0].trim().toLowerCase();
+      if (!rawUsername) {
+        setCurrentView('home');
+        return;
+      }
+
+      setIsLoadingRoute(true);
+      // 1. Try finding in local profiles
+      const foundLocal = availableProfiles.find(p => p.username.toLowerCase() === rawUsername);
+      if (foundLocal) {
+        setActiveProfile(foundLocal);
+        const photos = getLocalGallery(foundLocal.id);
+        setGallery(photos);
+        setCurrentView('public_profile');
+        setIsPublicVisitor(true);
+        setProfileNotFoundUsername(null);
+        setIsLoadingRoute(false);
+        return;
+      }
+
+      // 2. Try fetching from Supabase
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          const { data: dbProf } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('username', rawUsername)
+            .maybeSingle();
+
+          if (dbProf) {
+            saveLocalProfile(dbProf);
+            setProfiles(prev => {
+              const exists = prev.some(p => p.id === dbProf.id);
+              return exists ? prev.map(p => p.id === dbProf.id ? dbProf : p) : [dbProf, ...prev];
+            });
+            setActiveProfile(dbProf);
+
+            const { data: dbPhotos } = await supabase
+              .from('gallery')
+              .select('*')
+              .eq('profile_id', dbProf.id);
+
+            if (dbPhotos && dbPhotos.length > 0) {
+              setGallery(dbPhotos);
+            } else {
+              setGallery(getLocalGallery(dbProf.id));
+            }
+
+            setCurrentView('public_profile');
+            setIsPublicVisitor(true);
+            setProfileNotFoundUsername(null);
+            setIsLoadingRoute(false);
+            return;
+          }
+        } catch (e) {
+          console.warn('Erro buscando perfil público no Supabase:', e);
+        }
+      }
+
+      // If neither local nor Supabase found it:
+      setProfileNotFoundUsername(rawUsername);
+      setCurrentView('public_profile');
+      setIsPublicVisitor(true);
+      setIsLoadingRoute(false);
+      return;
+    }
+
+    if (cleanPath === '/painel' || cleanPath === '/panel') {
+      setCurrentView('panel');
+    } else if (cleanPath === '/login') {
+      setCurrentView('login');
+    } else if (cleanPath === '/cadastro' || cleanPath === '/register') {
+      setCurrentView('register');
+    } else if (cleanPath === '/admin') {
+      setCurrentView('admin_control');
+    } else if (cleanPath === '/sql-schema') {
+      setCurrentView('sql_schema');
+    } else if (cleanPath === '/deploy') {
+      setCurrentView('deploy_docs');
+    } else {
+      setCurrentView('home');
+    }
+  }
 
   // Initialize data on mount
   useEffect(() => {
@@ -51,6 +179,15 @@ export default function App() {
     setSystemSettings(loadedSettings);
 
     checkSupabaseStatus();
+
+    // Check URL route on start
+    parseAndApplyRoute(window.location.pathname, loadedProfiles);
+
+    // Listen to browser Back and Forward button events
+    const handlePopState = () => {
+      parseAndApplyRoute(window.location.pathname, loadedProfiles);
+    };
+    window.addEventListener('popstate', handlePopState);
 
     // 1. Check local stored auth session
     const storedAuth = getStoredAuthUser();
@@ -114,6 +251,10 @@ export default function App() {
         }
       });
     }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   // Update gallery when active profile changes
@@ -294,7 +435,7 @@ export default function App() {
       {/* Top Navbar */}
       <Navbar
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={navigateTo}
         activeProfile={activeProfile}
         profiles={profiles}
         onSelectProfile={handleSelectProfile}
@@ -306,29 +447,35 @@ export default function App() {
 
       {/* Main Content Router */}
       <main className="flex-1">
-        {currentView === 'home' && (
+        {isLoadingRoute ? (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-600 mb-3" />
+            <p className="text-sm font-semibold text-gray-700">Carregando portfólio do técnico...</p>
+          </div>
+        ) : null}
+
+        {!isLoadingRoute && currentView === 'home' && (
           <HomeView
             onStart={() => {
               if (currentUser) {
-                setCurrentView('panel');
+                navigateTo('panel');
               } else {
-                setCurrentView('register');
+                navigateTo('register');
               }
             }}
             onSelectProfile={(p) => {
-              handleSelectProfile(p);
-              setCurrentView('public_profile');
+              navigateTo('public_profile', p);
             }}
             profiles={profiles}
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateTo}
           />
         )}
 
-        {(currentView === 'login' || currentView === 'register') && (
+        {!isLoadingRoute && (currentView === 'login' || currentView === 'register') && (
           <AuthView
             initialMode={currentView === 'register' ? 'register' : 'login'}
             onSuccess={handleAuthSuccess}
-            onCancel={() => setCurrentView('home')}
+            onCancel={() => navigateTo('home')}
             profiles={profiles}
             onSelectDemoUser={(p) => {
               handleSelectProfile(p);
@@ -337,29 +484,63 @@ export default function App() {
           />
         )}
 
-        {currentView === 'panel' && (
+        {!isLoadingRoute && currentView === 'panel' && (
           <PainelView
             profile={activeProfile}
             gallery={gallery}
             onSaveProfile={handleSaveProfile}
             onAddPhoto={handleAddPhoto}
             onDeletePhoto={handleDeletePhoto}
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateTo}
             isSupabaseConnected={isSupabaseConnected}
             systemSettings={systemSettings}
           />
         )}
 
-        {currentView === 'public_profile' && (
-          <PublicProfileView
-            profile={activeProfile}
-            gallery={gallery}
-            testimonials={testimonials}
-            onBackToPanel={() => setCurrentView(currentUser ? 'panel' : 'home')}
-            systemSettings={systemSettings}
-            onTrackView={() => handleTrackView(activeProfile.id)}
-            onTrackWhatsAppClick={() => handleTrackWhatsAppClick(activeProfile.id)}
-          />
+        {!isLoadingRoute && currentView === 'public_profile' && (
+          profileNotFoundUsername ? (
+            <div className="min-h-[70vh] flex items-center justify-center p-4">
+              <div className="max-w-md w-full bg-white border border-gray-200 rounded-3xl p-8 text-center shadow-xl">
+                <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <UserX className="w-8 h-8 text-orange-600" />
+                </div>
+                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                  Link Não Encontrado
+                </span>
+                <h2 className="text-2xl font-extrabold text-gray-900 mt-3 font-['Syne',sans-serif]">
+                  Página do Técnico não Encontrada
+                </h2>
+                <p className="mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  O link <code className="text-orange-600 bg-orange-50 px-2 py-0.5 rounded font-mono font-bold">/p/{profileNotFoundUsername}</code> ainda não foi registrado ou foi digitado com algum erro.
+                </p>
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => navigateTo('home')}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all"
+                  >
+                    Voltar ao Início
+                  </button>
+                  <button
+                    onClick={() => navigateTo('register')}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md transition-all"
+                  >
+                    Criar Meu Site Grátis
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <PublicProfileView
+              profile={activeProfile}
+              gallery={gallery}
+              testimonials={testimonials}
+              onBackToPanel={() => navigateTo(currentUser ? 'panel' : 'home')}
+              systemSettings={systemSettings}
+              onTrackView={() => handleTrackView(activeProfile.id)}
+              onTrackWhatsAppClick={() => handleTrackWhatsAppClick(activeProfile.id)}
+              isPublicVisitor={isPublicVisitor}
+            />
+          )
         )}
 
         {currentView === 'admin_control' && (
@@ -467,7 +648,7 @@ export default function App() {
 
       {/* Global Application Footer with Copyright and Socials */}
       {currentView !== 'public_profile' && (
-        <Footer setCurrentView={setCurrentView} />
+        <Footer setCurrentView={navigateTo} />
       )}
 
       {/* Supabase Custom Keys Modal */}

@@ -20,8 +20,11 @@ import {
   Clock,
   CreditCard,
   Lock,
-  Crown
+  Crown,
+  Download,
+  Loader2
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { Profile, ServicePhoto, Testimonial, SystemSettings } from '../types';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
 
@@ -33,6 +36,7 @@ interface PublicProfileViewProps {
   systemSettings?: SystemSettings;
   onTrackView?: () => void;
   onTrackWhatsAppClick?: () => void;
+  isPublicVisitor?: boolean;
 }
 
 export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
@@ -43,12 +47,40 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
   systemSettings = DEFAULT_SYSTEM_SETTINGS,
   onTrackView,
   onTrackWhatsAppClick,
+  isPublicVisitor = false,
 }) => {
   const [activeTag, setActiveTag] = useState<string>('Todos');
   const [selectedPhoto, setSelectedPhoto] = useState<ServicePhoto | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [viewMode, setViewMode] = useState<'mobile' | 'full'>('mobile');
+  const [viewMode, setViewMode] = useState<'mobile' | 'full'>('full');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+
+  const displayDomain = typeof window !== 'undefined' && window.location.host && !window.location.host.includes('run.app') && !window.location.host.includes('localhost')
+    ? window.location.host
+    : 'tecnico-link.com';
+
+  const currentBaseUrl = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('run.app') && !window.location.origin.includes('localhost')
+    ? window.location.origin
+    : 'https://tecnico-link.com';
+
+  const currentUrl = `${currentBaseUrl}/p/${profile.username}`;
+  const cleanDisplayUrl = `${displayDomain}/p/${profile.username}`;
+
+  useEffect(() => {
+    if (currentUrl) {
+      QRCode.toDataURL(currentUrl, {
+        width: 360,
+        margin: 2,
+        color: {
+          dark: '#111827',
+          light: '#ffffff'
+        }
+      })
+      .then(url => setQrCodeDataUrl(url))
+      .catch(err => console.error('Erro gerando QR Code:', err));
+    }
+  }, [currentUrl]);
 
   // Track view once on mount
   useEffect(() => {
@@ -66,7 +98,6 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
     `Olá ${profile.full_name}, vi seu portfólio no TécnicoLink e gostaria de solicitar um orçamento para um serviço!`
   );
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${defaultMsg}`;
-  const currentUrl = `${window.location.origin}/p/${profile.username}`;
 
   const handleWhatsAppClick = () => {
     if (onTrackWhatsAppClick) {
@@ -441,64 +472,47 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
 
               {/* QR Code */}
               <div className="my-4 p-3 bg-white border border-gray-200 rounded-xl mx-auto inline-block shadow-2xs">
-                <svg className="w-36 h-36" viewBox="0 0 100 100" fill="currentColor">
-                  <rect x="5" y="5" width="25" height="25" fill="#111827" rx="2" />
-                  <rect x="9" y="9" width="17" height="17" fill="#ffffff" />
-                  <rect x="13" y="13" width="9" height="9" fill="#ea580c" />
-
-                  <rect x="70" y="5" width="25" height="25" fill="#111827" rx="2" />
-                  <rect x="74" y="9" width="17" height="17" fill="#ffffff" />
-                  <rect x="78" y="13" width="9" height="9" fill="#ea580c" />
-
-                  <rect x="5" y="70" width="25" height="25" fill="#111827" rx="2" />
-                  <rect x="9" y="74" width="17" height="17" fill="#ffffff" />
-                  <rect x="13" y="78" width="9" height="9" fill="#ea580c" />
-
-                  <rect x="36" y="8" width="6" height="6" fill="#111827" />
-                  <rect x="46" y="8" width="6" height="6" fill="#111827" />
-                  <rect x="56" y="14" width="6" height="6" fill="#111827" />
-                  <rect x="36" y="24" width="6" height="6" fill="#111827" />
-                  <rect x="48" y="24" width="6" height="6" fill="#111827" />
-                  
-                  <rect x="10" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="24" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="38" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="52" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="68" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="82" y="38" width="6" height="6" fill="#111827" />
-
-                  <rect x="36" y="50" width="8" height="8" fill="#ea580c" />
-                  <rect x="50" y="50" width="6" height="6" fill="#111827" />
-                  <rect x="62" y="50" width="6" height="6" fill="#111827" />
-                  <rect x="76" y="50" width="6" height="6" fill="#111827" />
-
-                  <rect x="36" y="66" width="6" height="6" fill="#111827" />
-                  <rect x="48" y="66" width="6" height="6" fill="#111827" />
-                  <rect x="60" y="66" width="6" height="6" fill="#111827" />
-                  <rect x="74" y="66" width="6" height="6" fill="#111827" />
-
-                  <rect x="36" y="80" width="6" height="6" fill="#111827" />
-                  <rect x="52" y="80" width="6" height="6" fill="#111827" />
-                  <rect x="68" y="80" width="6" height="6" fill="#111827" />
-                  <rect x="82" y="80" width="6" height="6" fill="#111827" />
-                </svg>
+                {qrCodeDataUrl ? (
+                  <img
+                    src={qrCodeDataUrl}
+                    alt={`QR Code para ${cleanDisplayUrl}`}
+                    className="w-40 h-40 object-contain mx-auto"
+                  />
+                ) : (
+                  <div className="w-40 h-40 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-orange-600" />
+                  </div>
+                )}
               </div>
 
               <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs font-mono text-gray-700 truncate mb-3">
-                {currentUrl}
+                {cleanDisplayUrl}
               </div>
 
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(currentUrl);
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2000);
-                }}
-                className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-xs"
-              >
-                {copiedLink ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link'}</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentUrl);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  }}
+                  className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  {copiedLink ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link'}</span>
+                </button>
+
+                {qrCodeDataUrl && (
+                  <a
+                    href={qrCodeDataUrl}
+                    download={`qrcode-${profile.username}.png`}
+                    className="w-full py-2 bg-gray-900 hover:bg-black text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Baixar Imagem QR Code (PNG)</span>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -509,33 +523,35 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#1F2937]">
-      {/* Top Preview Controls Bar */}
-      <div className="sticky top-14 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between text-xs shadow-2xs">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-gray-500 text-xs">
-            Rota Pública: <strong className="text-orange-600">/p/{profile.username}</strong>
-          </span>
-        </div>
+      {/* Top Preview Controls Bar - only shown if owner/preview, hidden for public visitors */}
+      {!isPublicVisitor && (
+        <div className="sticky top-14 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between text-xs shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-gray-500 text-xs">
+              Rota Pública: <strong className="text-orange-600">{cleanDisplayUrl}</strong>
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode(viewMode === 'mobile' ? 'full' : 'mobile')}
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 flex items-center gap-1.5 transition-colors font-medium text-xs"
-          >
-            {viewMode === 'mobile' ? <Maximize2 className="w-3.5 h-3.5 text-orange-600" /> : <Minimize2 className="w-3.5 h-3.5 text-orange-600" />}
-            <span>{viewMode === 'mobile' ? 'Modo Tela Cheia' : 'Modo Celular (Mobile)'}</span>
-          </button>
-
-          {onBackToPanel && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={onBackToPanel}
-              className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-md transition-colors text-xs"
+              onClick={() => setViewMode(viewMode === 'mobile' ? 'full' : 'mobile')}
+              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 flex items-center gap-1.5 transition-colors font-medium text-xs"
             >
-              Editar no Painel
+              {viewMode === 'mobile' ? <Maximize2 className="w-3.5 h-3.5 text-orange-600" /> : <Minimize2 className="w-3.5 h-3.5 text-orange-600" />}
+              <span>{viewMode === 'mobile' ? 'Modo Tela Cheia' : 'Modo Celular (Mobile)'}</span>
             </button>
-          )}
+
+            {onBackToPanel && (
+              <button
+                onClick={onBackToPanel}
+                className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-md transition-colors text-xs"
+              >
+                Editar no Painel
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Render based on viewMode */}
       {viewMode === 'mobile' ? (

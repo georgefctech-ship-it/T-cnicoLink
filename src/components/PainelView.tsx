@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Save, 
   Upload, 
@@ -24,9 +24,12 @@ import {
   Crown,
   TrendingUp,
   Zap,
-  Award
+  Award,
+  Download,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import QRCode from 'qrcode';
 import { Profile, ServicePhoto, AppView, SystemSettings } from '../types';
 import { getSupabase } from '../lib/supabaseClient';
 import { PlanUpgradeModal } from './PlanUpgradeModal';
@@ -251,7 +254,34 @@ export const PainelView: React.FC<PainelViewProps> = ({
     setShowPublishModal(true);
   }
 
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+
+  const displayDomain = typeof window !== 'undefined' && window.location.host && !window.location.host.includes('run.app') && !window.location.host.includes('localhost')
+    ? window.location.host
+    : 'tecnico-link.com';
+
+  const currentBaseUrl = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('run.app') && !window.location.origin.includes('localhost')
+    ? window.location.origin
+    : 'https://tecnico-link.com';
+
+  const cleanShortDisplayUrl = `${displayDomain}/p/${formData.username}`;
   const generatedUrl = `${window.location.origin}/p/${formData.username}`;
+
+  useEffect(() => {
+    if (generatedUrl) {
+      QRCode.toDataURL(generatedUrl, {
+        width: 360,
+        margin: 2,
+        color: {
+          dark: '#111827',
+          light: '#ffffff'
+        }
+      })
+      .then(url => setQrCodeDataUrl(url))
+      .catch(err => console.error('Erro gerando QR Code:', err));
+    }
+  }, [generatedUrl]);
+
   const rawPhone = formData.whatsapp_number.replace(/\D/g, '');
   const cleanPhone = rawPhone.startsWith('55') ? rawPhone : `55${rawPhone}`;
   const whatsappDemoLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
@@ -775,7 +805,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
 
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center justify-between gap-2 mb-3">
               <div className="truncate font-mono text-xs text-gray-800">
-                tecnicolink.com.br/p/<strong className="text-orange-600">{formData.username}</strong>
+                {displayDomain}/p/<strong className="text-orange-600">{formData.username}</strong>
               </div>
               <button
                 type="button"
@@ -921,7 +951,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
             {/* Generated Link Input */}
             <div className="mt-5 p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between gap-2">
               <span className="text-xs font-mono text-orange-700 truncate font-semibold">
-                {generatedUrl}
+                {cleanShortDisplayUrl}
               </span>
               <button
                 type="button"
@@ -930,67 +960,47 @@ export const PainelView: React.FC<PainelViewProps> = ({
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 2000);
                 }}
-                className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shrink-0 flex items-center gap-1"
+                className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shrink-0 flex items-center gap-1 shadow-2xs"
               >
                 {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedLink ? 'Copiado!' : 'Copiar'}</span>
               </button>
             </div>
 
-            {/* Simulated QR Code SVG for Vehicle Sticker / Business Card */}
+            {/* Real QR Code Generator for Vehicle Sticker / Business Card */}
             <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-xl text-center">
-              <div className="flex justify-center p-3 bg-white rounded-lg border border-gray-200 inline-block shadow-2xs">
-                {/* Clean QR visual representation */}
-                <svg className="w-32 h-32" viewBox="0 0 100 100" fill="currentColor">
-                  {/* Outer markers */}
-                  <rect x="5" y="5" width="25" height="25" fill="#111827" rx="2" />
-                  <rect x="9" y="9" width="17" height="17" fill="#ffffff" />
-                  <rect x="13" y="13" width="9" height="9" fill="#ea580c" />
-
-                  <rect x="70" y="5" width="25" height="25" fill="#111827" rx="2" />
-                  <rect x="74" y="9" width="17" height="17" fill="#ffffff" />
-                  <rect x="78" y="13" width="9" height="9" fill="#ea580c" />
-
-                  <rect x="5" y="70" width="25" height="25" fill="#111827" rx="2" />
-                  <rect x="9" y="74" width="17" height="17" fill="#ffffff" />
-                  <rect x="13" y="78" width="9" height="9" fill="#ea580c" />
-
-                  {/* QR Pattern dots */}
-                  <rect x="36" y="8" width="6" height="6" fill="#111827" />
-                  <rect x="46" y="8" width="6" height="6" fill="#111827" />
-                  <rect x="56" y="14" width="6" height="6" fill="#111827" />
-                  <rect x="36" y="24" width="6" height="6" fill="#111827" />
-                  <rect x="48" y="24" width="6" height="6" fill="#111827" />
-                  
-                  <rect x="10" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="24" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="38" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="52" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="68" y="38" width="6" height="6" fill="#111827" />
-                  <rect x="82" y="38" width="6" height="6" fill="#111827" />
-
-                  <rect x="36" y="50" width="8" height="8" fill="#ea580c" />
-                  <rect x="50" y="50" width="6" height="6" fill="#111827" />
-                  <rect x="62" y="50" width="6" height="6" fill="#111827" />
-                  <rect x="76" y="50" width="6" height="6" fill="#111827" />
-
-                  <rect x="36" y="66" width="6" height="6" fill="#111827" />
-                  <rect x="48" y="66" width="6" height="6" fill="#111827" />
-                  <rect x="60" y="66" width="6" height="6" fill="#111827" />
-                  <rect x="74" y="66" width="6" height="6" fill="#111827" />
-
-                  <rect x="36" y="80" width="6" height="6" fill="#111827" />
-                  <rect x="52" y="80" width="6" height="6" fill="#111827" />
-                  <rect x="68" y="80" width="6" height="6" fill="#111827" />
-                  <rect x="82" y="80" width="6" height="6" fill="#111827" />
-                </svg>
+              <div className="flex justify-center p-3 bg-white rounded-xl border border-gray-200 inline-block shadow-sm">
+                {qrCodeDataUrl ? (
+                  <img 
+                    src={qrCodeDataUrl} 
+                    alt={`QR Code para ${cleanShortDisplayUrl}`} 
+                    className="w-40 h-40 object-contain mx-auto"
+                  />
+                ) : (
+                  <div className="w-40 h-40 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-orange-600" />
+                  </div>
+                )}
               </div>
-              <p className="text-xs font-bold text-gray-900 mt-2">
-                QR Code para Cartão de Visita ou Adesivo do Carro
+              <p className="text-xs font-bold text-gray-900 mt-2.5">
+                QR Code Escaneável para Cartão de Visita ou Adesivo do Carro
               </p>
-              <p className="text-[11px] text-gray-500">
-                O cliente aponta a câmera e cai direto no seu portfólio com WhatsApp
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Aponte a câmera do celular para abrir direto: <strong className="text-orange-600">{cleanShortDisplayUrl}</strong>
               </p>
+
+              {qrCodeDataUrl && (
+                <div className="mt-3 flex justify-center">
+                  <a
+                    href={qrCodeDataUrl}
+                    download={`qrcode-${formData.username}.png`}
+                    className="px-4 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Baixar Imagem do QR Code (PNG)</span>
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
