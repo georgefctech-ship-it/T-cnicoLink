@@ -10,13 +10,17 @@ import { DeployDocsView } from './components/DeployDocsView';
 import { AdminControlView } from './components/AdminControlView';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { Footer } from './components/Footer';
-import { AppView, Profile, ServicePhoto, SystemSettings } from './types';
+import { AppView, Profile, ServicePhoto, SystemSettings, Testimonial } from './types';
 import { 
   getLocalProfiles, 
   saveLocalProfile, 
   getLocalGallery, 
   saveLocalGalleryPhoto, 
+  updateLocalGalleryPhoto,
   deleteLocalGalleryPhoto, 
+  getLocalTestimonials,
+  saveLocalTestimonial,
+  deleteLocalTestimonial,
   deleteLocalProfile,
   getStoredSupabaseConfig,
   getLocalSystemSettings,
@@ -34,6 +38,7 @@ export default function App() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [gallery, setGallery] = useState<ServicePhoto[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SYSTEM_SETTINGS);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
@@ -362,12 +367,79 @@ export default function App() {
   function handleAddPhoto(photo: ServicePhoto) {
     saveLocalGalleryPhoto(photo);
     setGallery(prev => [photo, ...prev]);
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase.from('service_gallery').insert({
+        id: photo.id,
+        profile_id: photo.profile_id,
+        title: photo.title,
+        description: photo.description,
+        tag: photo.tag,
+        image_url: photo.image_url
+      }).then(({ error }) => {
+        if (error) console.error('Supabase photo insert error:', error);
+      });
+    }
+  }
+
+  function handleUpdatePhoto(updatedPhoto: ServicePhoto) {
+    updateLocalGalleryPhoto(updatedPhoto);
+    setGallery(prev => prev.map(p => p.id === updatedPhoto.id ? updatedPhoto : p));
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase.from('service_gallery').update({
+        title: updatedPhoto.title,
+        description: updatedPhoto.description,
+        tag: updatedPhoto.tag,
+        image_url: updatedPhoto.image_url
+      }).eq('id', updatedPhoto.id).then(({ error }) => {
+        if (error) console.error('Supabase photo update error:', error);
+      });
+    }
   }
 
   function handleDeletePhoto(photoId: string) {
     if (activeProfile) {
       deleteLocalGalleryPhoto(activeProfile.id, photoId);
       setGallery(prev => prev.filter(p => p.id !== photoId));
+      const supabase = getSupabase();
+      if (supabase) {
+        supabase.from('service_gallery').delete().eq('id', photoId).then(({ error }) => {
+          if (error) console.error('Supabase photo delete error:', error);
+        });
+      }
+    }
+  }
+
+  function handleAddTestimonial(newTestimonial: Testimonial) {
+    saveLocalTestimonial(newTestimonial);
+    setTestimonials(prev => [newTestimonial, ...prev]);
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase.from('testimonials').insert({
+        id: newTestimonial.id,
+        profile_id: newTestimonial.profile_id,
+        client_name: newTestimonial.client_name,
+        client_neighborhood: newTestimonial.client_neighborhood,
+        comment: newTestimonial.comment,
+        rating: newTestimonial.rating,
+        service_type: newTestimonial.service_type
+      }).then(({ error }) => {
+        if (error) console.error('Supabase testimonial insert error:', error);
+      });
+    }
+  }
+
+  function handleDeleteTestimonial(testimonialId: string) {
+    if (activeProfile) {
+      deleteLocalTestimonial(activeProfile.id, testimonialId);
+      setTestimonials(prev => prev.filter(t => t.id !== testimonialId));
+      const supabase = getSupabase();
+      if (supabase) {
+        supabase.from('testimonials').delete().eq('id', testimonialId).then(({ error }) => {
+          if (error) console.error('Supabase testimonial delete error:', error);
+        });
+      }
     }
   }
 
@@ -478,6 +550,50 @@ export default function App() {
     });
   }
 
+  // Sync activeProfile gallery & testimonials
+  useEffect(() => {
+    if (!activeProfile) return;
+    const localPhotos = getLocalGallery(activeProfile.id);
+    setGallery(localPhotos);
+
+    const localTests = getLocalTestimonials(activeProfile.id);
+    setTestimonials(localTests);
+
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase
+        .from('service_gallery')
+        .select('*')
+        .eq('profile_id', activeProfile.id)
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            setGallery(data);
+          }
+        });
+
+      supabase
+        .from('testimonials')
+        .select('*')
+        .eq('profile_id', activeProfile.id)
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            setTestimonials(data.map((d: any) => ({
+              id: d.id,
+              profile_id: d.profile_id,
+              client_name: d.client_name,
+              client_neighborhood: d.client_neighborhood || '',
+              comment: d.comment,
+              rating: d.rating || 5,
+              service_type: d.service_type || 'Atendimento',
+              date: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : 'Recente'
+            })));
+          }
+        });
+    }
+  }, [activeProfile?.id]);
+
   if (!activeProfile) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-500">
@@ -485,8 +601,6 @@ export default function App() {
       </div>
     );
   }
-
-  const testimonials = INITIAL_TESTIMONIALS[activeProfile.id] || [];
 
   const isAdmin = Boolean(
     currentUser && (
@@ -557,6 +671,7 @@ export default function App() {
             gallery={gallery}
             onSaveProfile={handleSaveProfile}
             onAddPhoto={handleAddPhoto}
+            onUpdatePhoto={handleUpdatePhoto}
             onDeletePhoto={handleDeletePhoto}
             setCurrentView={navigateTo}
             isSupabaseConnected={isSupabaseConnected}
@@ -601,6 +716,8 @@ export default function App() {
               profile={activeProfile}
               gallery={gallery}
               testimonials={testimonials}
+              onAddTestimonial={handleAddTestimonial}
+              onDeleteTestimonial={handleDeleteTestimonial}
               onBackToPanel={() => navigateTo(currentUser ? 'panel' : 'home')}
               systemSettings={systemSettings}
               onTrackView={() => handleTrackView(activeProfile.id)}

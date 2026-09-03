@@ -79,11 +79,14 @@ CREATE TABLE IF NOT EXISTS public.testimonials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     client_name TEXT NOT NULL,
+    client_neighborhood TEXT DEFAULT '',
     comment TEXT NOT NULL,
     rating INTEGER DEFAULT 5,
     service_type TEXT DEFAULT 'Atendimento',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS client_neighborhood TEXT DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS idx_testimonials_profile_id ON public.testimonials(profile_id);
 
@@ -179,6 +182,11 @@ DROP POLICY IF EXISTS "Public testimonials read" ON public.testimonials;
 CREATE POLICY "Public testimonials read"
     ON public.testimonials FOR SELECT
     USING (true);
+
+DROP POLICY IF EXISTS "Public can insert testimonials" ON public.testimonials;
+CREATE POLICY "Public can insert testimonials"
+    ON public.testimonials FOR INSERT
+    WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Users manage own testimonials" ON public.testimonials;
 CREATE POLICY "Users manage own testimonials"

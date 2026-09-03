@@ -27,7 +27,10 @@ import {
   Award,
   Download,
   Loader2,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Pencil,
+  Edit2,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import QRCode from 'qrcode';
@@ -48,6 +51,7 @@ interface PainelViewProps {
   gallery: ServicePhoto[];
   onSaveProfile: (updatedProfile: Profile) => void;
   onAddPhoto: (photo: ServicePhoto) => void;
+  onUpdatePhoto?: (photo: ServicePhoto) => void;
   onDeletePhoto: (photoId: string) => void;
   setCurrentView: (view: AppView) => void;
   isSupabaseConnected: boolean;
@@ -59,6 +63,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
   gallery,
   onSaveProfile,
   onAddPhoto,
+  onUpdatePhoto,
   onDeletePhoto,
   setCurrentView,
   isSupabaseConnected,
@@ -79,6 +84,15 @@ export const PainelView: React.FC<PainelViewProps> = ({
   const [newPhotoTitle, setNewPhotoTitle] = useState('');
   const [newPhotoDesc, setNewPhotoDesc] = useState('');
   const [newPhotoTag, setNewPhotoTag] = useState<'Instalação' | 'Antes e Depois' | 'Manutenção' | 'Acabamento'>('Instalação');
+
+  // Photo Editing & Deleting states
+  const [editingPhoto, setEditingPhoto] = useState<ServicePhoto | null>(null);
+  const [editPhotoTitle, setEditPhotoTitle] = useState('');
+  const [editPhotoTag, setEditPhotoTag] = useState<'Instalação' | 'Antes e Depois' | 'Manutenção' | 'Acabamento'>('Instalação');
+  const [editPhotoDesc, setEditPhotoDesc] = useState('');
+  const [editPhotoUrl, setEditPhotoUrl] = useState('');
+  const [photoToDelete, setPhotoToDelete] = useState<ServicePhoto | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -251,6 +265,44 @@ export const PainelView: React.FC<PainelViewProps> = ({
       created_at: new Date().toISOString(),
     };
     onAddPhoto(newPhoto);
+  }
+
+  function handleStartEditPhoto(photo: ServicePhoto) {
+    setEditingPhoto(photo);
+    setEditPhotoTitle(photo.title || '');
+    setEditPhotoTag((photo.tag as any) || 'Instalação');
+    setEditPhotoDesc(photo.description || '');
+    setEditPhotoUrl(photo.image_url || '');
+  }
+
+  function handleSaveEditPhoto(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingPhoto) return;
+    if (!editPhotoUrl.trim()) return;
+
+    const updated: ServicePhoto = {
+      ...editingPhoto,
+      title: editPhotoTitle.trim() || 'Serviço Executado',
+      tag: editPhotoTag,
+      description: editPhotoDesc.trim(),
+      image_url: editPhotoUrl.trim(),
+    };
+
+    if (onUpdatePhoto) {
+      onUpdatePhoto(updated);
+    }
+    setEditingPhoto(null);
+  }
+
+  function handleEditPhotoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   }
 
   // Save and Publish Handler
@@ -777,83 +829,174 @@ export const PainelView: React.FC<PainelViewProps> = ({
               </div>
 
               {/* Quick sample photo loader */}
-              <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] text-gray-500 font-semibold">Adicionar amostra rápida:</span>
-                <button
-                  type="button"
-                  onClick={() => handleAddSamplePhoto(
-                    'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
-                    'Quadro de Luz Moderno',
-                    'Instalação'
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[11px] text-gray-700 font-bold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-orange-600" />
+                    <span>Fotos de exemplo prontas (clique para adicionar):</span>
+                  </span>
+                  {gallery.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Deseja excluir todas as fotos da galeria para começar do zero?')) {
+                          gallery.forEach(p => onDeletePhoto(p.id));
+                        }
+                      }}
+                      className="text-[10px] text-red-600 hover:text-red-700 font-semibold hover:underline"
+                    >
+                      Limpar todas as fotos
+                    </button>
                   )}
-                  className="text-[10px] bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 px-2 py-0.5 rounded transition-colors font-medium"
-                >
-                  + Foto Elétrica
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddSamplePhoto(
-                    'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80',
-                    'Instalação Ar Split Inverter',
-                    'Instalação'
-                  )}
-                  className="text-[10px] bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 px-2 py-0.5 rounded transition-colors font-medium"
-                >
-                  + Foto Ar-Condicionado
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddSamplePhoto(
-                    'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
-                    'Móvel Planejado de Cozinha',
-                    'Acabamento'
-                  )}
-                  className="text-[10px] bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 px-2 py-0.5 rounded transition-colors font-medium"
-                >
-                  + Foto Marcenaria
-                </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleAddSamplePhoto(
+                      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
+                      'Quadro de Distribuição e Disjuntores',
+                      'Instalação'
+                    )}
+                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
+                  >
+                    + Elétrica
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSamplePhoto(
+                      'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80',
+                      'Instalação de Ar Split Inverter',
+                      'Instalação'
+                    )}
+                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
+                  >
+                    + Ar-Condicionado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSamplePhoto(
+                      'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
+                      'Móvel Planejado de Cozinha',
+                      'Acabamento'
+                    )}
+                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
+                  >
+                    + Marcenaria
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSamplePhoto(
+                      'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80',
+                      'Pintura Interna e Acabamento Fino',
+                      'Acabamento'
+                    )}
+                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
+                  >
+                    + Pintura
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSamplePhoto(
+                      'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?auto=format&fit=crop&w=800&q=80',
+                      'Instalação e Troca de Tubulação Hidráulica',
+                      'Manutenção'
+                    )}
+                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
+                  >
+                    + Hidráulica
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Gallery Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {gallery.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="bg-white border border-gray-200 rounded-lg overflow-hidden group hover:border-orange-500 transition-all flex flex-col justify-between shadow-xs"
-                >
-                  <div className="relative aspect-video bg-gray-100">
-                    <img
-                      src={photo.image_url}
-                      alt={photo.title || 'Foto de serviço'}
-                      className="w-full h-full object-cover"
-                    />
-                    {photo.tag && (
-                      <span className="absolute top-2 left-2 bg-gray-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                        {photo.tag}
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => onDeletePhoto(photo.id)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Excluir foto"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="p-3">
-                    <h4 className="text-xs font-bold text-gray-900 line-clamp-1">
-                      {photo.title || 'Serviço Executado'}
-                    </h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
-                      {photo.description}
-                    </p>
-                  </div>
+            {gallery.length === 0 ? (
+              <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
+                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <ImageIcon className="w-6 h-6" />
                 </div>
-              ))}
-            </div>
+                <h4 className="text-xs font-bold text-gray-900">Sua galeria está vazia</h4>
+                <p className="text-[11px] text-gray-500 mt-1 max-w-xs mx-auto">
+                  Adicione fotos de serviços concluídos pelo celular ou clique nos botões de amostra acima para começar.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {gallery.map((photo) => (
+                  <div
+                    key={photo.id}
+                    className="bg-white border border-gray-200 hover:border-orange-400 rounded-xl overflow-hidden group transition-all flex flex-col justify-between shadow-2xs"
+                  >
+                    <div className="relative aspect-video bg-gray-100">
+                      <img
+                        src={photo.image_url}
+                        alt={photo.title || 'Foto de serviço'}
+                        className="w-full h-full object-cover"
+                      />
+                      {photo.tag && (
+                        <span className="absolute top-2 left-2 bg-gray-900/85 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+                          {photo.tag}
+                        </span>
+                      )}
+
+                      {/* Quick Top Right Action Buttons */}
+                      <div className="absolute top-2 right-2 flex items-center gap-1 bg-gray-900/70 p-1 rounded-lg backdrop-blur-xs">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditPhoto(photo)}
+                          className="p-1 bg-white hover:bg-orange-50 text-gray-700 hover:text-orange-600 rounded-md transition-colors"
+                          title="Editar detalhes desta foto"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPhotoToDelete(photo)}
+                          className="p-1 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-md transition-colors"
+                          title="Excluir foto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-3">
+                      <h4 className="text-xs font-bold text-gray-900 line-clamp-1">
+                        {photo.title || 'Serviço Executado'}
+                      </h4>
+                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                        {photo.description || 'Sem descrição cadastrada.'}
+                      </p>
+
+                      {/* Bottom Footer Actions */}
+                      <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between">
+                        <span className="text-[10px] text-gray-400">
+                          {photo.created_at ? new Date(photo.created_at).toLocaleDateString('pt-BR') : 'Foto ativa'}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditPhoto(photo)}
+                            className="px-2.5 py-1 text-[11px] font-bold text-orange-600 hover:bg-orange-50 rounded-lg flex items-center gap-1 transition-colors"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhotoToDelete(photo)}
+                            className="px-2.5 py-1 text-[11px] font-bold text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Excluir</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
           </div>
 
@@ -1178,6 +1321,190 @@ export const PainelView: React.FC<PainelViewProps> = ({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Edit Photo Modal */}
+      {editingPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-gray-200 shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-orange-100 text-orange-700 rounded-lg">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900">Editar Foto do Portfólio</h3>
+                  <p className="text-[11px] text-gray-500">Atualize o título, categoria, descrição ou imagem.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingPhoto(null)}
+                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditPhoto} className="p-4 sm:p-5 space-y-3.5 overflow-y-auto">
+              {/* Photo Preview & Replace */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1.5">
+                  Pré-visualização da Imagem
+                </label>
+                <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group">
+                  <img
+                    src={editPhotoUrl}
+                    alt={editPhotoTitle}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-white text-gray-900 text-xs font-bold rounded-lg shadow-sm hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Trocar Arquivo</span>
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  ref={editFileInputRef}
+                  onChange={handleEditPhotoFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">
+                  Título do Serviço *
+                </label>
+                <input
+                  type="text"
+                  value={editPhotoTitle}
+                  onChange={(e) => setEditPhotoTitle(e.target.value)}
+                  placeholder="Ex: Instalação de Ar Split 12.000 BTUs"
+                  className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              {/* Category / Tag */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">
+                  Categoria / Tag de Destaque
+                </label>
+                <select
+                  value={editPhotoTag}
+                  onChange={(e) => setEditPhotoTag(e.target.value as any)}
+                  className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 focus:outline-none font-medium text-gray-700"
+                >
+                  <option value="Instalação">Instalação</option>
+                  <option value="Antes e Depois">Antes e Depois</option>
+                  <option value="Manutenção">Manutenção</option>
+                  <option value="Acabamento">Acabamento</option>
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">
+                  Descrição Detalhada do Trabalho
+                </label>
+                <textarea
+                  value={editPhotoDesc}
+                  onChange={(e) => setEditPhotoDesc(e.target.value)}
+                  rows={3}
+                  placeholder="Descreva o que foi feito, materiais utilizados, garantia dada..."
+                  className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 focus:outline-none resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Direct Image URL */}
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">
+                  Link Direto da Imagem (URL)
+                </label>
+                <input
+                  type="url"
+                  value={editPhotoUrl}
+                  onChange={(e) => setEditPhotoUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 focus:outline-none font-mono"
+                  required
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingPhoto(null)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Salvar Alterações</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Photo Confirmation Modal */}
+      {photoToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full border border-gray-200 shadow-2xl p-5 text-center animate-fadeIn">
+            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-sm text-gray-900">Excluir esta foto?</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Tem certeza que deseja remover <strong>"{photoToDelete.title || 'esta foto'}"</strong> do seu portfólio?
+            </p>
+
+            <div className="my-3.5 aspect-video w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+              <img
+                src={photoToDelete.image_url}
+                alt={photoToDelete.title || 'Foto'}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPhotoToDelete(null)}
+                className="flex-1 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeletePhoto(photoToDelete.id);
+                  setPhotoToDelete(null);
+                }}
+                className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
+              >
+                Sim, Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}

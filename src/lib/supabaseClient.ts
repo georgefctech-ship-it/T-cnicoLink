@@ -1,9 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { INITIAL_PROFILES, INITIAL_GALLERY, DEFAULT_SYSTEM_SETTINGS } from './mockData';
-import { Profile, ServicePhoto, SystemSettings } from '../types';
+import { INITIAL_PROFILES, INITIAL_GALLERY, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS } from './mockData';
+import { Profile, ServicePhoto, SystemSettings, Testimonial } from '../types';
 
 const STORAGE_KEY_PROFILES = 'tecnicolink_profiles_v3';
 const STORAGE_KEY_GALLERY = 'tecnicolink_gallery_v3';
+const STORAGE_KEY_TESTIMONIALS = 'tecnicolink_testimonials_v3';
 const STORAGE_KEY_CONFIG = 'tecnicolink_supabase_cfg_v1';
 const STORAGE_KEY_SETTINGS = 'tecnicolink_system_settings_v1';
 const STORAGE_KEY_AUTH_USER = 'tecnicolink_auth_user_v3';
@@ -155,6 +156,68 @@ export function deleteLocalGalleryPhoto(profileId: string, photoId: string) {
     }
   } catch (e) {
     console.error(e);
+  }
+}
+
+export function updateLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
+    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : { ...INITIAL_GALLERY };
+    if (!all[photo.profile_id]) {
+      all[photo.profile_id] = [];
+    }
+    const index = all[photo.profile_id].findIndex(p => p.id === photo.id);
+    if (index >= 0) {
+      all[photo.profile_id][index] = photo;
+    } else {
+      all[photo.profile_id].push(photo);
+    }
+    localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
+  } catch (e) {
+    console.error(e);
+  }
+  return photo;
+}
+
+export function getLocalTestimonials(profileId: string): Testimonial[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TESTIMONIALS);
+    if (raw) {
+      const all: Record<string, Testimonial[]> = JSON.parse(raw);
+      if (all[profileId]) return all[profileId];
+    }
+  } catch (e) {
+    console.error('Error reading local testimonials:', e);
+  }
+  const initial = INITIAL_TESTIMONIALS[profileId] || [];
+  return initial;
+}
+
+export function saveLocalTestimonial(testimonial: Testimonial): Testimonial {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TESTIMONIALS);
+    const all: Record<string, Testimonial[]> = raw ? JSON.parse(raw) : { ...INITIAL_TESTIMONIALS };
+    if (!all[testimonial.profile_id]) {
+      all[testimonial.profile_id] = [];
+    }
+    all[testimonial.profile_id] = [testimonial, ...all[testimonial.profile_id]];
+    localStorage.setItem(STORAGE_KEY_TESTIMONIALS, JSON.stringify(all));
+  } catch (e) {
+    console.error('Error saving local testimonial:', e);
+  }
+  return testimonial;
+}
+
+export function deleteLocalTestimonial(profileId: string, testimonialId: string) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TESTIMONIALS);
+    const all: Record<string, Testimonial[]> = raw ? JSON.parse(raw) : { ...INITIAL_TESTIMONIALS };
+    if (all[profileId]) {
+      all[profileId] = all[profileId].filter(t => t.id !== testimonialId);
+      localStorage.setItem(STORAGE_KEY_TESTIMONIALS, JSON.stringify(all));
+    }
+  } catch (e) {
+    console.error('Error deleting local testimonial:', e);
   }
 }
 
