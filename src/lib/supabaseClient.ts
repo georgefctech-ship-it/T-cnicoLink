@@ -157,3 +157,24 @@ export function deleteLocalGalleryPhoto(profileId: string, photoId: string) {
     console.error(e);
   }
 }
+
+export function deleteLocalProfile(profileId: string) {
+  try {
+    const current = getLocalProfiles();
+    const updated = current.filter(p => p.id !== profileId && p.user_id !== profileId);
+    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+
+    // Also remove any gallery photos stored locally for this profile
+    const rawGallery = localStorage.getItem(STORAGE_KEY_GALLERY);
+    if (rawGallery) {
+      const all: Record<string, ServicePhoto[]> = JSON.parse(rawGallery);
+      if (all[profileId]) {
+        delete all[profileId];
+        localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
+      }
+    }
+  } catch (e) {
+    console.error('Error deleting local profile:', e);
+  }
+}
+

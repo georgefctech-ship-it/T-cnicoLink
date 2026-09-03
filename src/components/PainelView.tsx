@@ -26,7 +26,8 @@ import {
   Zap,
   Award,
   Download,
-  Loader2
+  Loader2,
+  Link as LinkIcon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import QRCode from 'qrcode';
@@ -34,6 +35,7 @@ import { Profile, ServicePhoto, AppView, SystemSettings } from '../types';
 import { getSupabase } from '../lib/supabaseClient';
 import { PlanUpgradeModal } from './PlanUpgradeModal';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
+import { ProfessionSelect } from './ProfessionSelect';
 
 interface PainelViewProps {
   profile: Profile;
@@ -64,6 +66,10 @@ export const PainelView: React.FC<PainelViewProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile_sim'>('mobile_sim');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoInputMode, setPhotoInputMode] = useState<'file' | 'url'>('file');
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [showAvatarUrlInput, setShowAvatarUrlInput] = useState(false);
+  const [avatarUrlText, setAvatarUrlText] = useState('');
   const [newPhotoTitle, setNewPhotoTitle] = useState('');
   const [newPhotoDesc, setNewPhotoDesc] = useState('');
   const [newPhotoTag, setNewPhotoTag] = useState<'Instalação' | 'Antes e Depois' | 'Manutenção' | 'Acabamento'>('Instalação');
@@ -185,6 +191,41 @@ export const PainelView: React.FC<PainelViewProps> = ({
       setFormData(prev => ({ ...prev, avatar_url: reader.result as string }));
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleSetAvatarFromUrl() {
+    if (avatarUrlText.trim()) {
+      setFormData(prev => ({ ...prev, avatar_url: avatarUrlText.trim() }));
+      setShowAvatarUrlInput(false);
+      setAvatarUrlText('');
+    }
+  }
+
+  // Add Photo by Direct Image URL (Unsplash, Imgur, Drive, etc.)
+  function handleAddPhotoByUrl() {
+    const url = newPhotoUrl.trim();
+    if (!url) return;
+
+    if (gallery.length >= photoLimit) {
+      setUpgradeReason('photos_limit');
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    const newPhoto: ServicePhoto = {
+      id: 'photo-' + Date.now() + Math.random().toString(36).substring(2, 5),
+      profile_id: formData.id,
+      image_url: url,
+      title: newPhotoTitle.trim() || 'Serviço Executado com Excelência',
+      description: newPhotoDesc.trim() || 'Trabalho realizado com acabamento de alto padrão e materiais certificados.',
+      tag: newPhotoTag,
+      created_at: new Date().toISOString(),
+    };
+
+    onAddPhoto(newPhoto);
+    setNewPhotoUrl('');
+    setNewPhotoTitle('');
+    setNewPhotoDesc('');
   }
 
   // Quick add sample photos
@@ -417,25 +458,53 @@ export const PainelView: React.FC<PainelViewProps> = ({
                 </div>
 
                 <div className="flex-1 w-full space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide">
                       Nome Completo ou Nome Fantasia <span className="text-orange-600">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none font-medium"
-                      placeholder="Ex: Carlos Eduardo Eletricista"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAvatarUrlInput(!showAvatarUrlInput)}
+                      className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                      <span>{showAvatarUrlInput ? 'Ocultar Link' : 'Inserir Link da Foto de Perfil'}</span>
+                    </button>
                   </div>
+
+                  {showAvatarUrlInput && (
+                    <div className="p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex gap-2 items-center">
+                      <input
+                        type="url"
+                        value={avatarUrlText}
+                        onChange={(e) => setAvatarUrlText(e.target.value)}
+                        placeholder="Cole o link da foto (ex: https://...)"
+                        className="flex-1 bg-white border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:ring-1 focus:ring-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSetAvatarFromUrl}
+                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded text-xs font-bold whitespace-nowrap"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  )}
+
+                  <input
+                    type="text"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none font-medium"
+                    placeholder="Ex: Carlos Eduardo Eletricista"
+                  />
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
                       Link / Slug Personalizado do Site <span className="text-orange-600">*</span>
                     </label>
                     <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-orange-500 focus-within:bg-white text-sm font-mono">
-                      <span className="text-gray-400 select-none">tecnicolink.com.br/p/</span>
+                      <span className="text-gray-400 select-none">tecnico-link.com/p/</span>
                       <input
                         type="text"
                         value={formData.username}
@@ -454,13 +523,15 @@ export const PainelView: React.FC<PainelViewProps> = ({
                   <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
                     Profissão / Especialidade <span className="text-orange-600">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <ProfessionSelect
                     value={formData.profession}
-                    onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none"
-                    placeholder="Ex: Eletricista Residencial e Copel"
+                    onChange={(prof) => setFormData({ ...formData, profession: prof })}
+                    placeholder="Selecione ou digite..."
+                    required
                   />
+                  <span className="text-[10px] text-gray-400 mt-0.5 block">
+                    Digite para autocompletar ou escolha em Outras.
+                  </span>
                 </div>
 
                 <div>
@@ -577,6 +648,35 @@ export const PainelView: React.FC<PainelViewProps> = ({
 
             {/* Upload Area */}
             <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 hover:border-orange-500 transition-colors mb-5">
+              
+              {/* Mode Toggle: File vs Image Link */}
+              <div className="flex items-center gap-2 mb-3 bg-gray-200/70 p-1 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setPhotoInputMode('file')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    photoInputMode === 'file'
+                      ? 'bg-white text-orange-700 shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Enviar do Aparelho</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhotoInputMode('url')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    photoInputMode === 'url'
+                      ? 'bg-white text-orange-700 shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <span>Inserir por Link (URL)</span>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                 
                 <div className="sm:col-span-8 space-y-2">
@@ -606,32 +706,73 @@ export const PainelView: React.FC<PainelViewProps> = ({
                     onChange={(e) => setNewPhotoDesc(e.target.value)}
                     className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
+
+                  {photoInputMode === 'url' && (
+                    <div className="flex gap-2 items-center pt-1">
+                      <input
+                        type="url"
+                        placeholder="Cole o link da imagem (ex: https://...jpg / png)"
+                        value={newPhotoUrl}
+                        onChange={(e) => setNewPhotoUrl(e.target.value)}
+                        className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                      />
+                      {newPhotoUrl.trim() && (
+                        <img
+                          src={newPhotoUrl.trim()}
+                          alt="Prévia"
+                          className="w-8 h-8 rounded object-cover border border-gray-300 shrink-0 bg-gray-100"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-4 flex flex-col gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingPhoto}
-                    className="w-full py-2.5 px-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5"
-                  >
-                    {uploadingPhoto ? (
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Upload className="w-3.5 h-3.5" />
-                    )}
-                    <span>Enviar Foto do Celular</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handlePhotoFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <span className="text-[10px] text-gray-400 text-center">
-                    Bucket Supabase: <code className="text-orange-600 font-semibold">services-photos</code>
-                  </span>
+                  {photoInputMode === 'file' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingPhoto}
+                        className="w-full py-2.5 px-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5"
+                      >
+                        {uploadingPhoto ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        <span>Enviar Foto do Celular</span>
+                      </button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handlePhotoFileChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <span className="text-[10px] text-gray-400 text-center">
+                        Upload direto com salvamento local + Supabase
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleAddPhotoByUrl}
+                        disabled={!newPhotoUrl.trim()}
+                        className="w-full py-2.5 px-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar por Link</span>
+                      </button>
+                      <span className="text-[10px] text-gray-400 text-center">
+                        Insira URLs do Google Drive, Unsplash, Imgur, etc.
+                      </span>
+                    </>
+                  )}
                 </div>
 
               </div>

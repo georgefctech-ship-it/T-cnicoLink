@@ -35,10 +35,13 @@ import {
   Flame,
   CheckSquare,
   Share2,
-  PhoneCall
+  PhoneCall,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { Profile, SystemSettings, UserRole, UserStatus, UserPlan } from '../types';
 import { SUPABASE_SQL_SCRIPT } from '../lib/sqlScripts';
+import { ProfessionSelect } from './ProfessionSelect';
 
 interface AdminControlViewProps {
   profiles: Profile[];
@@ -67,6 +70,8 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
   const [copiedScript, setCopiedScript] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
 
   // Financial & Stats calculations
   const totalUsers = profiles.length;
@@ -130,6 +135,25 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
     onSaveSystemSettings(settingsForm);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
+  };
+
+  const handleOpenEdit = (profile: Profile) => {
+    setEditingProfile({ ...profile });
+  };
+
+  const handleSaveEditedUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProfile) return;
+    onUpdateProfile(editingProfile);
+    setEditingProfile(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingProfile) return;
+    if (onDeleteProfile) {
+      onDeleteProfile(deletingProfile.id);
+    }
+    setDeletingProfile(null);
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -549,16 +573,24 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                                 alt={p.full_name}
                                 className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0"
                               />
-                              <div>
-                                <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                              <div className="min-w-0">
+                                <div className="font-bold text-gray-900 flex items-center gap-1.5 flex-wrap">
                                   <span>{p.full_name}</span>
                                   {p.role === 'admin' && (
                                     <span className="px-1.5 py-0.2 bg-orange-600 text-white rounded text-[9px] font-black uppercase">
                                       ADMIN
                                     </span>
                                   )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEdit(p)}
+                                    className="p-1 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                    title="Editar informações deste técnico"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
                                 </div>
-                                <div className="text-gray-500 text-[11px]">{p.profession} • {p.city_state}</div>
+                                <div className="text-gray-500 text-[11px] truncate">{p.profession} • {p.city_state}</div>
                                 <div className="text-orange-700 font-mono text-[10px]">/p/{p.username}</div>
                               </div>
                             </div>
@@ -627,9 +659,21 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                           </td>
 
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              {/* Edit Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(p)}
+                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-md border border-amber-200 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                                title="Editar dados completos do técnico"
+                              >
+                                <Pencil className="w-3 h-3 text-amber-700" />
+                                <span>Editar</span>
+                              </button>
+
                               {/* Impersonate Button */}
                               <button
+                                type="button"
                                 onClick={() => onImpersonateUser(p)}
                                 className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-200 transition-colors"
                                 title="Ver o Painel como este Técnico"
@@ -639,8 +683,9 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
 
                               {/* Suspend / Unsuspend Button */}
                               <button
+                                type="button"
                                 onClick={() => handleToggleSuspend(p)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all ${
+                                className={`px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all ${
                                   isSuspended
                                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                                     : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200'
@@ -650,15 +695,27 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                                 {isSuspended ? (
                                   <>
                                     <Unlock className="w-3 h-3" />
-                                    <span>Desbloquear</span>
+                                    <span>Ativar</span>
                                   </>
                                 ) : (
                                   <>
                                     <Lock className="w-3 h-3" />
-                                    <span>Suspender</span>
+                                    <span>Bloquear</span>
                                   </>
                                 )}
                               </button>
+
+                              {/* Delete Button */}
+                              {p.role !== 'admin' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingProfile(p)}
+                                  className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 rounded-md border border-red-200 transition-colors"
+                                  title="Excluir Técnico e Site"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -915,6 +972,291 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
             <pre className="p-4 bg-gray-900 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[420px]">
               {ADMIN_SQL_RBAC}
             </pre>
+          </div>
+        )}
+
+        {/* MODAL: EDIT USER */}
+        {editingProfile && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-amber-100 text-amber-800 rounded-lg">
+                    <Pencil className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">Editar Técnico / Usuário</h3>
+                    <p className="text-xs text-gray-500">ID: {editingProfile.id} • Cadastrado no sistema</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(null)}
+                  className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEditedUser} className="space-y-4">
+                {/* Avatar Preview + URL */}
+                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <img
+                    src={editingProfile.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
+                    alt="Prévia Avatar"
+                    className="w-16 h-16 rounded-xl object-cover border border-gray-300 bg-white shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLElement).setAttribute('src', 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789');
+                    }}
+                  />
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Link / URL da Foto do Avatar
+                    </label>
+                    <input
+                      type="url"
+                      value={editingProfile.avatar_url || ''}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, avatar_url: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-orange-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Nome Completo / Fantasia <span className="text-orange-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingProfile.full_name}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, full_name: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Link do Site / Username <span className="text-orange-600">*</span>
+                    </label>
+                    <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-orange-500 focus-within:bg-white text-xs font-mono">
+                      <span className="text-gray-400 select-none">/p/</span>
+                      <input
+                        type="text"
+                        required
+                        value={editingProfile.username}
+                        onChange={(e) => setEditingProfile({ 
+                          ...editingProfile, 
+                          username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') 
+                        })}
+                        className="bg-transparent text-orange-600 focus:outline-none w-full font-bold ml-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Profissão / Especialidade <span className="text-orange-600">*</span>
+                    </label>
+                    <ProfessionSelect
+                      value={editingProfile.profession}
+                      onChange={(prof) => setEditingProfile({ ...editingProfile, profession: prof })}
+                      placeholder="Selecione ou digite a profissão..."
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      WhatsApp do Profissional <span className="text-orange-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingProfile.whatsapp_number}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, whatsapp_number: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Cidade / Estado (Região de Atendimento)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingProfile.city_state || ''}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, city_state: e.target.value })}
+                      placeholder="Ex: São Paulo - SP"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Plano do Usuário
+                    </label>
+                    <select
+                      value={editingProfile.plan || 'free'}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, plan: e.target.value as UserPlan })}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 font-bold"
+                    >
+                      <option value="free">Plano FREE (Grátis)</option>
+                      <option value="pro">Plano PRO (R$ 29,90/mês)</option>
+                      <option value="enterprise">Plano ENTERPRISE</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                    Resumo / Descrição dos Serviços (Bio Curta)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editingProfile.bio_short || ''}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, bio_short: e.target.value })}
+                    placeholder="Descrição para apresentar o técnico aos clientes..."
+                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Status da Conta
+                    </label>
+                    <select
+                      value={editingProfile.status || 'active'}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, status: e.target.value as UserStatus })}
+                      className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 font-bold"
+                    >
+                      <option value="active">Ativo (Acesso Liberado)</option>
+                      <option value="suspended">Suspenso (Bloqueado)</option>
+                      <option value="pending">Pendente</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Limite de Fotos
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={editingProfile.max_photos || 12}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, max_photos: Number(e.target.value) })}
+                      className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                      Limite Mensal de Acessos
+                    </label>
+                    <input
+                      type="number"
+                      min={10}
+                      max={100000}
+                      value={editingProfile.monthly_views_limit || 100}
+                      onChange={(e) => setEditingProfile({ ...editingProfile, monthly_views_limit: Number(e.target.value) })}
+                      className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="edit_is_verified"
+                    checked={Boolean(editingProfile.is_verified)}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, is_verified: e.target.checked })}
+                    className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                  />
+                  <label htmlFor="edit_is_verified" className="text-xs font-bold text-gray-800 flex items-center gap-1.5 cursor-pointer">
+                    <Award className="w-4 h-4 text-blue-600" />
+                    <span>Conceder Selo Oficial de Verificado (Destaque Azul no Site)</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfile(null)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Salvar Alterações</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: DELETE CONFIRMATION */}
+        {deletingProfile && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-red-100 text-red-700 rounded-xl shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Excluir Usuário e Site?</h3>
+                  <p className="text-xs text-gray-500">Esta ação é permanente e irreversível.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-red-50/60 rounded-xl border border-red-200 text-xs space-y-2 text-red-900">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={deletingProfile.avatar_url}
+                    alt={deletingProfile.full_name}
+                    className="w-8 h-8 rounded-full object-cover border border-red-200 shrink-0"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">{deletingProfile.full_name}</div>
+                    <div className="text-[11px] text-gray-500 font-mono">tecnico-link.com/p/{deletingProfile.username}</div>
+                  </div>
+                </div>
+                <p className="text-red-700 text-[11px] leading-relaxed pt-1">
+                  Ao confirmar, todos os dados cadastrais, fotos da galeria, links, QR Codes gerados e estatísticas de acesso deste técnico serão removidos do armazenamento local e do banco Supabase.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeletingProfile(null)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Sim, Excluir Usuário</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

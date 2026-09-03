@@ -15,6 +15,7 @@ import {
 import { getSupabase } from '../lib/supabaseClient';
 import { Profile } from '../types';
 import { ADMIN_MASTER_PROFILE } from '../lib/mockData';
+import { ProfessionSelect } from './ProfessionSelect';
 
 interface AuthViewProps {
   initialMode: 'login' | 'register';
@@ -375,20 +376,15 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Profissão / Área de Atuação <span className="text-orange-600">*</span>
                   </label>
-                  <select
+                  <ProfessionSelect
                     value={profession}
-                    onChange={(e) => setProfession(e.target.value)}
-                    className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-orange-600"
-                  >
-                    <option value="Eletricista Residencial e Comercial">Eletricista Residencial e Comercial</option>
-                    <option value="Técnico em Climatização & Ar-Condicionado">Técnico em Climatização & Ar-Condicionado</option>
-                    <option value="Marcenaria & Móveis Planejados">Marcenaria & Móveis Planejados</option>
-                    <option value="Encanador & Caça-Vazamentos">Encanador & Caça-Vazamentos</option>
-                    <option value="Pintor Profissional & Texturas">Pintor Profissional & Texturas</option>
-                    <option value="Gesseiro e Drywall">Gesseiro e Drywall</option>
-                    <option value="Chaveiro & Fechaduras">Chaveiro & Fechaduras</option>
-                    <option value="Pedreiro & Reformas Gerais">Pedreiro & Reformas Gerais</option>
-                  </select>
+                    onChange={(prof) => setProfession(prof)}
+                    placeholder="Busque ou digite (Ex: Eletricista, Refrigeração...)"
+                    required
+                  />
+                  <span className="text-[10px] text-gray-400 mt-1 block">
+                    Selecione nas categorias ou digite uma profissão personalizada ("Outras").
+                  </span>
                 </div>
 
                 <div>

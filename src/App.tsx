@@ -17,6 +17,7 @@ import {
   getLocalGallery, 
   saveLocalGalleryPhoto, 
   deleteLocalGalleryPhoto, 
+  deleteLocalProfile,
   getStoredSupabaseConfig,
   getLocalSystemSettings,
   saveLocalSystemSettings,
@@ -329,6 +330,31 @@ export default function App() {
     }
   }
 
+  async function handleDeleteProfile(profileId: string) {
+    // 1. Delete from local storage (both profile & its gallery photos)
+    deleteLocalProfile(profileId);
+
+    // 2. Remove from React state
+    setProfiles(prev => prev.filter(p => p.id !== profileId && p.user_id !== profileId));
+
+    // 3. If currently viewing/editing this profile, fallback safely
+    if (activeProfile && (activeProfile.id === profileId || activeProfile.user_id === profileId)) {
+      const remaining = profiles.filter(p => p.id !== profileId && p.user_id !== profileId);
+      setActiveProfile(remaining.length > 0 ? remaining[0] : ADMIN_MASTER_PROFILE);
+    }
+
+    // 4. Delete from Supabase if connected
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.from('service_gallery').delete().eq('profile_id', profileId);
+        await supabase.from('profiles').delete().eq('id', profileId);
+      } catch (err) {
+        console.error('Supabase profile deletion error:', err);
+      }
+    }
+  }
+
   function handleAuthSuccess(profile: Profile) {
     const isOwnerAdmin = profile.role === 'admin' || profile.username === 'george-admin';
     const authUser = {
@@ -548,6 +574,7 @@ export default function App() {
             <AdminControlView
               profiles={profiles}
               onUpdateProfile={handleSaveProfile}
+              onDeleteProfile={handleDeleteProfile}
               systemSettings={systemSettings}
               onSaveSystemSettings={handleSaveSystemSettings}
               onImpersonateUser={handleImpersonateUser}
