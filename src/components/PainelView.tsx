@@ -45,6 +45,7 @@ import {
 import { PlanUpgradeModal } from './PlanUpgradeModal';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
 import { ProfessionSelect } from './ProfessionSelect';
+import { compressImage, PRESET_AVATARS } from '../lib/imageHelper';
 
 interface PainelViewProps {
   profile: Profile;
@@ -80,6 +81,9 @@ export const PainelView: React.FC<PainelViewProps> = ({
   const [photoInputMode, setPhotoInputMode] = useState<'file' | 'url'>('file');
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [showAvatarUrlInput, setShowAvatarUrlInput] = useState(false);
+  const [showPresetAvatars, setShowPresetAvatars] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarSaveSuccess, setAvatarSaveSuccess] = useState(false);
   const [avatarUrlText, setAvatarUrlText] = useState('');
   const [newPhotoTitle, setNewPhotoTitle] = useState('');
   const [newPhotoDesc, setNewPhotoDesc] = useState('');
@@ -165,13 +169,19 @@ export const PainelView: React.FC<PainelViewProps> = ({
     }
 
     if (!finalImageUrl) {
-      // FileReader fallback
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      // FileReader fallback with auto compression to prevent QuotaExceededError
+      try {
+        const compressedDataUrl = await compressImage(file, {
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.82,
+          mimeType: 'image/jpeg'
+        });
+
         const newPhoto: ServicePhoto = {
           id: 'photo-' + Date.now(),
           profile_id: formData.id,
-          image_url: reader.result as string,
+          image_url: compressedDataUrl,
           title: newPhotoTitle || 'Serviço Executado com Excelência',
           description: newPhotoDesc || 'Trabalho realizado com acabamento de alto padrão e materiais certificados.',
           tag: newPhotoTag,
@@ -180,9 +190,12 @@ export const PainelView: React.FC<PainelViewProps> = ({
         onAddPhoto(newPhoto);
         setNewPhotoTitle('');
         setNewPhotoDesc('');
+      } catch (err) {
+        console.error('Falha ao otimizar foto:', err);
+      } finally {
         setUploadingPhoto(false);
-      };
-      reader.readAsDataURL(file);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
       return;
     }
 
@@ -199,26 +212,56 @@ export const PainelView: React.FC<PainelViewProps> = ({
     setNewPhotoTitle('');
     setNewPhotoDesc('');
     setUploadingPhoto(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  // Avatar Upload
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Avatar Upload with auto compression and immediate profile save
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const file = files[0];
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData(prev => ({ ...prev, avatar_url: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingAvatar(true);
+
+    try {
+      const optimizedAvatar = await compressImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+        mimeType: 'image/jpeg'
+      });
+
+      const updated = { ...formData, avatar_url: optimizedAvatar };
+      setFormData(updated);
+      onSaveProfile(updated);
+      setAvatarSaveSuccess(true);
+      setTimeout(() => setAvatarSaveSuccess(false), 3500);
+    } catch (err) {
+      console.error('Erro ao salvar foto de perfil:', err);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
   }
 
   function handleSetAvatarFromUrl() {
     if (avatarUrlText.trim()) {
-      setFormData(prev => ({ ...prev, avatar_url: avatarUrlText.trim() }));
+      const updated = { ...formData, avatar_url: avatarUrlText.trim() };
+      setFormData(updated);
+      onSaveProfile(updated);
       setShowAvatarUrlInput(false);
       setAvatarUrlText('');
+      setAvatarSaveSuccess(true);
+      setTimeout(() => setAvatarSaveSuccess(false), 3500);
     }
+  }
+
+  function handleSelectPresetAvatar(url: string) {
+    const updated = { ...formData, avatar_url: url };
+    setFormData(updated);
+    onSaveProfile(updated);
+    setShowPresetAvatars(false);
+    setAvatarSaveSuccess(true);
+    setTimeout(() => setAvatarSaveSuccess(false), 3500);
   }
 
   // Add Photo by Direct Image URL (Unsplash, Imgur, Drive, etc.)
@@ -362,10 +405,11 @@ export const PainelView: React.FC<PainelViewProps> = ({
   useEffect(() => {
     if (qrScanUrl) {
       QRCode.toDataURL(qrScanUrl, {
-        width: 380,
-        margin: 2,
+        width: 480,
+        margin: 3,
+        errorCorrectionLevel: 'M',
         color: {
-          dark: '#111827',
+          dark: '#000000',
           light: '#ffffff'
         }
       })
@@ -485,43 +529,103 @@ export const PainelView: React.FC<PainelViewProps> = ({
               
               {/* Avatar + Name */}
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="relative group shrink-0">
-                  <img
-                    src={formData.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
-                    alt="Foto do perfil"
-                    className="w-20 h-20 rounded-xl object-cover ring-2 ring-orange-500/50 shadow-sm bg-gray-100"
-                  />
+                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                  <div className="relative group shrink-0">
+                    <img
+                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
+                      alt="Foto do perfil"
+                      className="w-20 h-20 rounded-xl object-cover ring-2 ring-orange-500/50 shadow-sm bg-gray-100"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingAvatar}
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute inset-0 bg-gray-900/75 opacity-0 group-hover:opacity-100 rounded-xl flex flex-col items-center justify-center text-[10px] text-white font-bold transition-opacity cursor-pointer"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                      ) : (
+                        <>
+                          <Camera className="w-4 h-4 mb-0.5 text-orange-400" />
+                          Trocar Foto
+                        </>
+                      )}
+                    </button>
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      onChange={handleAvatarChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
                   <button
                     type="button"
+                    disabled={isUploadingAvatar}
                     onClick={() => avatarInputRef.current?.click()}
-                    className="absolute inset-0 bg-gray-900/75 opacity-0 group-hover:opacity-100 rounded-xl flex flex-col items-center justify-center text-[10px] text-white font-bold transition-opacity"
+                    className="text-[11px] text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1"
                   >
-                    <Camera className="w-4 h-4 mb-0.5 text-orange-400" />
-                    Trocar Foto
+                    <Upload className="w-3 h-3" />
+                    <span>{isUploadingAvatar ? 'Otimizando...' : 'Enviar Foto'}</span>
                   </button>
-                  <input
-                    type="file"
-                    ref={avatarInputRef}
-                    onChange={handleAvatarChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
                 </div>
 
                 <div className="flex-1 w-full space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide">
                       Nome Completo ou Nome Fantasia <span className="text-orange-600">*</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowAvatarUrlInput(!showAvatarUrlInput)}
-                      className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
-                    >
-                      <LinkIcon className="w-3 h-3" />
-                      <span>{showAvatarUrlInput ? 'Ocultar Link' : 'Inserir Link da Foto de Perfil'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPresetAvatars(!showPresetAvatars);
+                          setShowAvatarUrlInput(false);
+                        }}
+                        className="text-[11px] text-gray-600 hover:text-orange-600 font-semibold flex items-center gap-1 bg-gray-100 hover:bg-orange-50 px-2 py-0.5 rounded transition-colors"
+                      >
+                        <Sparkles className="w-3 h-3 text-orange-500" />
+                        <span>Avatares Prontos</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAvatarUrlInput(!showAvatarUrlInput);
+                          setShowPresetAvatars(false);
+                        }}
+                        className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                      >
+                        <LinkIcon className="w-3 h-3" />
+                        <span>{showAvatarUrlInput ? 'Fechar' : 'Via Link'}</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {avatarSaveSuccess && (
+                    <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Foto do perfil salva e sincronizada com sucesso!</span>
+                    </div>
+                  )}
+
+                  {showPresetAvatars && (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                      <p className="text-[11px] font-bold text-gray-600">Escolha um avatar profissional com 1 clique:</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        {PRESET_AVATARS.map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleSelectPresetAvatar(preset.url)}
+                            className="group relative flex flex-col items-center gap-1 p-1 bg-white border border-gray-200 hover:border-orange-500 rounded-lg transition-all"
+                          >
+                            <img src={preset.url} alt={preset.name} className="w-10 h-10 rounded-full object-cover group-hover:scale-105 transition-transform" />
+                            <span className="text-[9px] font-medium text-gray-700 text-center truncate w-full">{preset.tag}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {showAvatarUrlInput && (
                     <div className="p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex gap-2 items-center">
@@ -537,7 +641,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
                         onClick={handleSetAvatarFromUrl}
                         className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded text-xs font-bold whitespace-nowrap"
                       >
-                        Aplicar
+                        Aplicar e Salvar
                       </button>
                     </div>
                   )}

@@ -12,7 +12,7 @@ import {
   KeyRound,
   ShieldCheck
 } from 'lucide-react';
-import { getSupabase } from '../lib/supabaseClient';
+import { getSupabase, saveLocalProfile } from '../lib/supabaseClient';
 import { Profile } from '../types';
 import { ADMIN_MASTER_PROFILE } from '../lib/mockData';
 import { ProfessionSelect } from './ProfessionSelect';
@@ -166,6 +166,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
           console.error('Error syncing profile to Supabase', e);
         }
       }
+
+      // Always persist locally immediately so the public profile URL /p/slug works instantly
+      saveLocalProfile(newProfile);
 
       setLoading(false);
       onSuccess(newProfile);

@@ -28,9 +28,11 @@ import {
   getSupabase,
   getStoredAuthUser,
   saveStoredAuthUser,
-  clearStoredAuthUser
+  clearStoredAuthUser,
+  getStoredActiveProfileId,
+  saveStoredActiveProfileId
 } from './lib/supabaseClient';
-import { INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './lib/mockData';
+import { INITIAL_PROFILES, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './lib/mockData';
 import { decodeProfilePayload } from './lib/profileUrlHelper';
 
 export default function App() {
@@ -131,12 +133,48 @@ export default function App() {
     if (rawUsername) {
       setIsLoadingRoute(true);
 
-      // 1. Try finding in current or fresh local profiles
+      // 1. Multi-tier search in local profiles, initial profiles, and individual localStorage backups
       const freshProfiles = getLocalProfiles();
-      const allCandidates = [...availableProfiles, ...freshProfiles];
-      const foundLocal = allCandidates.find(p => p.username.toLowerCase() === rawUsername);
+      const allCandidates = [...availableProfiles, ...freshProfiles, ADMIN_MASTER_PROFILE, ...INITIAL_PROFILES];
+      
+      let foundLocal = allCandidates.find(p => p && p.username && p.username.toLowerCase().trim() === rawUsername);
+      if (!foundLocal) {
+        foundLocal = allCandidates.find(p => p && p.id && p.id.toLowerCase().trim() === rawUsername);
+      }
+
+      // Explicit match for George Admin master profile
+      if (!foundLocal && (rawUsername === 'george-admin' || rawUsername === 'admin' || rawUsername === 'george')) {
+        foundLocal = ADMIN_MASTER_PROFILE;
+      }
+
+      // Check direct localStorage keys (tecnicolink_prof_...)
+      if (!foundLocal && typeof localStorage !== 'undefined') {
+        try {
+          const directStored = localStorage.getItem(`tecnicolink_prof_${rawUsername}`);
+          if (directStored) {
+            foundLocal = JSON.parse(directStored);
+          } else {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('tecnicolink_prof_')) {
+                const raw = localStorage.getItem(key);
+                if (raw) {
+                  const parsed = JSON.parse(raw);
+                  if (parsed && (parsed.username?.toLowerCase() === rawUsername || parsed.id?.toLowerCase() === rawUsername)) {
+                    foundLocal = parsed;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('LocalStorage fallback search error:', e);
+        }
+      }
       
       if (foundLocal) {
+        saveLocalProfile(foundLocal);
         setActiveProfile(foundLocal);
         const photos = getLocalGallery(foundLocal.id);
         setGallery(photos);
@@ -154,7 +192,7 @@ export default function App() {
           const { data: dbProf } = await supabase
             .from('profiles')
             .select('*')
-            .eq('username', rawUsername)
+            .or(`username.eq.${rawUsername},id.eq.${rawUsername}`)
             .maybeSingle();
 
           if (dbProf) {
@@ -216,7 +254,11 @@ export default function App() {
   useEffect(() => {
     const loadedProfiles = getLocalProfiles();
     setProfiles(loadedProfiles);
-    const initialActive = loadedProfiles[0];
+
+    // Retrieve active profile ID if previously saved
+    const storedActiveId = getStoredActiveProfileId();
+    const foundStored = storedActiveId ? loadedProfiles.find(p => p.id === storedActiveId || p.username === storedActiveId) : null;
+    const initialActive = foundStored || loadedProfiles[0];
     setActiveProfile(initialActive);
 
     const initialGallery = getLocalGallery(initialActive.id);
@@ -242,7 +284,8 @@ export default function App() {
       setCurrentUser(storedAuth);
       const isOwnerAdmin = storedAuth.role === 'admin' || storedAuth.email?.trim().toLowerCase() === 'georgefctec@gmail.com';
       if (isOwnerAdmin) {
-        setActiveProfile(ADMIN_MASTER_PROFILE);
+        const savedAdmin = loadedProfiles.find(p => p.id === 'prof-admin' || p.role === 'admin' || p.username === 'george-admin');
+        setActiveProfile(savedAdmin || ADMIN_MASTER_PROFILE);
       } else {
         const matchingProfile = loadedProfiles.find(p => p.id === storedAuth.id || p.user_id === storedAuth.id);
         if (matchingProfile) {
@@ -290,7 +333,8 @@ export default function App() {
                 return exists ? prev.map(p => p.id === fullProf.id ? fullProf : p) : [fullProf, ...prev];
               });
             } else if (isOwnerAdmin) {
-              setActiveProfile(ADMIN_MASTER_PROFILE);
+              const savedAdmin = loadedProfiles.find(p => p.id === 'prof-admin' || p.role === 'admin' || p.username === 'george-admin');
+              setActiveProfile(savedAdmin || ADMIN_MASTER_PROFILE);
             }
           } catch (e) {
             console.warn('Session profile fetch warning:', e);
@@ -320,44 +364,56 @@ export default function App() {
 
   function handleSelectProfile(profile: Profile) {
     setActiveProfile(profile);
+    saveStoredActiveProfileId(profile.id);
     const photos = getLocalGallery(profile.id);
     setGallery(photos);
   }
 
   async function handleSaveProfile(updated: Profile) {
-    saveLocalProfile(updated);
-    setActiveProfile(updated);
-    setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
+    const saved = saveLocalProfile(updated);
+    setActiveProfile(saved);
+    saveStoredActiveProfileId(saved.id);
+    setProfiles(prev => {
+      const exists = prev.some(p => p.id === saved.id || (p.username && p.username === saved.username));
+      return exists 
+        ? prev.map(p => (p.id === saved.id || (p.username && p.username === saved.username)) ? saved : p) 
+        : [saved, ...prev];
+    });
 
     const supabase = getSupabase();
-    if (supabase && updated.id) {
+    // Validate UUID format before attempting Supabase upsert to prevent Postgres type errors
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.id);
+    if (supabase && isUuid) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .upsert({
-            id: updated.id,
-            full_name: updated.full_name,
-            username: updated.username,
-            profession: updated.profession,
-            specialties: updated.specialties,
-            whatsapp_number: updated.whatsapp_number,
-            phone_number: updated.phone_number,
-            bio_short: updated.bio_short,
-            avatar_url: updated.avatar_url,
-            cover_url: updated.cover_url,
-            city_state: updated.city_state,
-            years_experience: updated.years_experience,
-            accepts_pix: updated.accepts_pix,
-            accepts_cards: updated.accepts_cards,
-            offers_warranty: updated.offers_warranty,
-            role: updated.role,
-            status: updated.status,
-            plan: updated.plan,
-            is_verified: updated.is_verified,
-            max_photos: updated.max_photos,
-            monthly_views_limit: updated.monthly_views_limit,
+            id: saved.id,
+            full_name: saved.full_name,
+            username: saved.username,
+            profession: saved.profession,
+            specialties: saved.specialties,
+            whatsapp_number: saved.whatsapp_number,
+            phone_number: saved.phone_number,
+            bio_short: saved.bio_short,
+            avatar_url: saved.avatar_url,
+            cover_url: saved.cover_url,
+            city_state: saved.city_state,
+            years_experience: saved.years_experience,
+            accepts_pix: saved.accepts_pix,
+            accepts_cards: saved.accepts_cards,
+            offers_warranty: saved.offers_warranty,
+            role: saved.role,
+            status: saved.status,
+            plan: saved.plan,
+            is_verified: saved.is_verified,
+            max_photos: saved.max_photos,
+            monthly_views_limit: saved.monthly_views_limit,
             updated_at: new Date().toISOString()
           });
+        if (error) {
+          console.warn('Supabase profile save error:', error);
+        }
       } catch (err) {
         console.error('Supabase profile save error:', err);
       }
@@ -481,15 +537,23 @@ export default function App() {
     setCurrentUser(authUser);
 
     if (isOwnerAdmin) {
-      setActiveProfile(ADMIN_MASTER_PROFILE);
+      const savedAdmin = profiles.find(p => p.id === 'prof-admin' || p.role === 'admin' || p.username === 'george-admin') || profile || ADMIN_MASTER_PROFILE;
+      const enrichedAdmin = saveLocalProfile(savedAdmin);
+      setActiveProfile(enrichedAdmin);
+      saveStoredActiveProfileId(enrichedAdmin.id);
+      setProfiles(prev => {
+        const filtered = prev.filter(p => p.id !== enrichedAdmin.id && p.username !== enrichedAdmin.username);
+        return [enrichedAdmin, ...filtered];
+      });
       setCurrentView('admin_control');
     } else {
-      saveLocalProfile(profile);
+      const saved = saveLocalProfile(profile);
+      saveStoredActiveProfileId(saved.id);
       setProfiles(prev => {
-        const exists = prev.some(p => p.id === profile.id);
-        return exists ? prev.map(p => p.id === profile.id ? profile : p) : [profile, ...prev];
+        const filtered = prev.filter(p => p.id !== saved.id && p.username !== saved.username);
+        return [saved, ...filtered];
       });
-      setActiveProfile(profile);
+      setActiveProfile(saved);
       setCurrentView('panel');
     }
   }

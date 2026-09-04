@@ -95,10 +95,11 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
   useEffect(() => {
     if (qrScanUrl) {
       QRCode.toDataURL(qrScanUrl, {
-        width: 380,
-        margin: 2,
+        width: 480,
+        margin: 3,
+        errorCorrectionLevel: 'M',
         color: {
-          dark: '#111827',
+          dark: '#000000',
           light: '#ffffff'
         }
       })

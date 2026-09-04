@@ -87,15 +87,12 @@ export function decodeProfilePayload(encoded: string): Profile | null {
 
 /**
  * Gera a URL completa para QR Code.
- * Inclui o payload de dados (?d=...) para que qualquer celular consiga abrir
- * e visualizar o perfil na hora mesmo sem cache ou offline.
+ * Retorna a URL limpa direta do perfil (/p/username).
+ * Isso gera uma matriz QR de baixa densidade com blocos grandes e nítidos,
+ * permitindo que 100% dos celulares leiam instantaneamente sem falhas ópticas.
  */
 export function getQrCodeScanUrl(profile: Profile): string {
   const baseUrl = getBaseAppUrl();
-  const payload = encodeProfilePayload(profile);
-  if (payload) {
-    return `${baseUrl}/p/${profile.username}?d=${payload}`;
-  }
   return `${baseUrl}/p/${profile.username}`;
 }
 

@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { INITIAL_PROFILES, INITIAL_GALLERY, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS } from './mockData';
+import { INITIAL_PROFILES, INITIAL_GALLERY, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './mockData';
 import { Profile, ServicePhoto, SystemSettings, Testimonial } from '../types';
 
 const STORAGE_KEY_PROFILES = 'tecnicolink_profiles_v3';
@@ -88,32 +88,123 @@ export function getSupabase(): SupabaseClient | null {
   return null;
 }
 
+export const STORAGE_KEY_ACTIVE_PROFILE_ID = 'tecnicolink_active_profile_id';
+
 // Local store helpers with persistence fallback
 export function getLocalProfiles(): Profile[] {
+  let list: Profile[] = [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PROFILES);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        list = parsed;
+      }
     }
   } catch (e) {
-    console.error(e);
+    console.error('Failed to read profiles from localStorage:', e);
   }
-  localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(INITIAL_PROFILES));
-  return INITIAL_PROFILES;
+
+  // If empty, start with initial
+  if (list.length === 0) {
+    list = [...INITIAL_PROFILES];
+  }
+
+  // Guarantee ADMIN_MASTER_PROFILE is always included
+  const hasAdmin = list.some(p => p.username === 'george-admin' || p.id === 'prof-admin');
+  if (!hasAdmin) {
+    list.unshift(ADMIN_MASTER_PROFILE);
+  }
+
+  // Scan localStorage for any individually registered profiles (fail-safe)
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('tecnicolink_prof_')) {
+        const itemRaw = localStorage.getItem(key);
+        if (itemRaw) {
+          const itemProf = JSON.parse(itemRaw);
+          if (itemProf && itemProf.username) {
+            const alreadyExists = list.some(p => p.username?.toLowerCase() === itemProf.username?.toLowerCase() || p.id === itemProf.id);
+            if (!alreadyExists) {
+              list.push(itemProf);
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Scan localStorage profiles error:', e);
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(list));
+  } catch (e) {
+    console.warn('Could not persist updated profiles list:', e);
+  }
+
+  return list;
+}
+
+export function getStoredActiveProfileId(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY_ACTIVE_PROFILE_ID);
+  } catch {
+    return null;
+  }
+}
+
+export function saveStoredActiveProfileId(profileId: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_ACTIVE_PROFILE_ID, profileId);
+  } catch (e) {
+    console.warn('Failed to save active profile id:', e);
+  }
 }
 
 export function saveLocalProfile(profile: Profile): Profile {
   const current = getLocalProfiles();
-  const index = current.findIndex(p => p.id === profile.id || p.username === profile.username);
+  const index = current.findIndex(p => p.id === profile.id || (p.username && profile.username && p.username.toLowerCase() === profile.username.toLowerCase()));
   let updated: Profile[];
+  const enrichedProfile: Profile = {
+    ...profile,
+    updated_at: new Date().toISOString()
+  };
+
   if (index >= 0) {
     updated = [...current];
-    updated[index] = { ...updated[index], ...profile, updated_at: new Date().toISOString() };
+    updated[index] = { ...updated[index], ...enrichedProfile };
   } else {
-    updated = [profile, ...current];
+    updated = [enrichedProfile, ...current];
   }
-  localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
-  return profile;
+
+  // 1. Save to primary list
+  try {
+    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to update STORAGE_KEY_PROFILES in localStorage:', e);
+    // If quota exceeded, try cleaning older keys
+    try {
+      localStorage.removeItem('tecnicolink_profiles_v1');
+      localStorage.removeItem('tecnicolink_profiles_v2');
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+    } catch {}
+  }
+
+  // 2. Save individual profile keys as dedicated fail-safe backups
+  try {
+    if (enrichedProfile.id) {
+      localStorage.setItem(`tecnicolink_prof_${enrichedProfile.id}`, JSON.stringify(enrichedProfile));
+    }
+    if (enrichedProfile.username) {
+      localStorage.setItem(`tecnicolink_prof_${enrichedProfile.username.toLowerCase()}`, JSON.stringify(enrichedProfile));
+    }
+    localStorage.setItem(STORAGE_KEY_ACTIVE_PROFILE_ID, enrichedProfile.id);
+  } catch (e) {
+    console.warn('Failed to save dedicated profile backup:', e);
+  }
+
+  return index >= 0 ? updated[index] : enrichedProfile;
 }
 
 export function getLocalGallery(profileId: string): ServicePhoto[] {

@@ -48,6 +48,7 @@ export const ADMIN_MASTER_PROFILE: Profile = {
 };
 
 export const INITIAL_PROFILES: Profile[] = [
+  ADMIN_MASTER_PROFILE,
   {
     id: 'prof-1',
     user_id: 'user-1',
