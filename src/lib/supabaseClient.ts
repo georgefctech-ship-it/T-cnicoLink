@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { INITIAL_PROFILES, INITIAL_GALLERY, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './mockData';
+import { INITIAL_PROFILES, INITIAL_GALLERY, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE, isMockDemoPhoto } from './mockData';
 import { Profile, ServicePhoto, SystemSettings, Testimonial } from '../types';
 
 const STORAGE_KEY_PROFILES = 'tecnicolink_profiles_v3';
@@ -212,23 +212,33 @@ export function getLocalGallery(profileId: string): ServicePhoto[] {
     const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
     if (raw) {
       const all: Record<string, ServicePhoto[]> = JSON.parse(raw);
-      if (all[profileId]) return all[profileId];
+      if (all[profileId]) {
+        // Filter out all demonstration photos, leaving ONLY real photos added by administrator/user
+        const realPhotos = all[profileId].filter(p => !isMockDemoPhoto(p));
+        // Clean up stored gallery if mock photos existed
+        if (realPhotos.length !== all[profileId].length) {
+          all[profileId] = realPhotos;
+          localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
+        }
+        return realPhotos;
+      }
     }
   } catch (e) {
     console.error(e);
   }
-  // Initialize with initial gallery
-  const initial = INITIAL_GALLERY[profileId] || [];
-  return initial;
+  // Return empty list if no admin-added photos exist
+  return [];
 }
 
 export function saveLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
-    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : { ...INITIAL_GALLERY };
+    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : {};
     if (!all[photo.profile_id]) {
       all[photo.profile_id] = [];
     }
+    // Clean up any demo photos
+    all[photo.profile_id] = all[photo.profile_id].filter(p => !isMockDemoPhoto(p));
     all[photo.profile_id] = [photo, ...all[photo.profile_id]];
     localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
   } catch (e) {
@@ -240,9 +250,9 @@ export function saveLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
 export function deleteLocalGalleryPhoto(profileId: string, photoId: string) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
-    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : { ...INITIAL_GALLERY };
+    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : {};
     if (all[profileId]) {
-      all[profileId] = all[profileId].filter(p => p.id !== photoId);
+      all[profileId] = all[profileId].filter(p => p.id !== photoId && !isMockDemoPhoto(p));
       localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
     }
   } catch (e) {
@@ -253,10 +263,11 @@ export function deleteLocalGalleryPhoto(profileId: string, photoId: string) {
 export function updateLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
-    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : { ...INITIAL_GALLERY };
+    const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : {};
     if (!all[photo.profile_id]) {
       all[photo.profile_id] = [];
     }
+    all[photo.profile_id] = all[photo.profile_id].filter(p => !isMockDemoPhoto(p));
     const index = all[photo.profile_id].findIndex(p => p.id === photo.id);
     if (index >= 0) {
       all[photo.profile_id][index] = photo;

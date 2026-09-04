@@ -52,16 +52,16 @@ export const INITIAL_PROFILES: Profile[] = [
   {
     id: 'prof-1',
     user_id: 'user-1',
-    full_name: 'Marcos Silva Climatização',
-    username: 'marcos-refrigeracao',
+    full_name: 'Jhonatas Climatização',
+    username: 'jhonatas-refrigeracao',
     profession: 'Técnico em Refrigeração & Ar-Condicionado',
     specialties: ['Instalação Split Inverter', 'Higienização Química', 'Carga de Gás R410/R32', 'Contratos PMOC'],
-    whatsapp_number: '(11) 98455-1234',
-    phone_number: '(11) 98455-1234',
+    whatsapp_number: '(15) 98819-3561',
+    phone_number: '(15) 98819-3561',
     bio_short: 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade com nitrogênio e 1 ano de garantia.',
     avatar_url: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=400&q=80',
     cover_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80',
-    city_state: 'São Paulo - SP',
+    city_state: 'Sorocaba - SP',
     years_experience: 9,
     accepts_pix: true,
     accepts_cards: true,
@@ -191,144 +191,35 @@ export const INITIAL_PROFILES: Profile[] = [
   }
 ];
 
-export const INITIAL_GALLERY: Record<string, ServicePhoto[]> = {
-  'prof-1': [
-    {
-      id: 'photo-101',
-      profile_id: 'prof-1',
-      image_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80',
-      title: 'Instalação de Ar Split Inverter 18.000 BTUs',
-      description: 'Instalação técnica com tubulação 100% cobre flangeada, vácuo de 500 microns e isolamento térmico blindado.',
-      tag: 'Instalação',
-      created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-102',
-      profile_id: 'prof-1',
-      image_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
-      title: 'Higienização Química com Bactericida Certificado',
-      description: 'Desmontagem da turbina e serpentina para limpeza profunda, eliminando 99,9% de ácaros, fungos e odores.',
-      tag: 'Manutenção',
-      created_at: new Date(Date.now() - 7 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-103',
-      profile_id: 'prof-1',
-      image_url: 'https://images.unsplash.com/photo-1545259741-2ea3ebf61fa3?auto=format&fit=crop&w=800&q=80',
-      title: 'Manutenção de Condensadora Multi Split',
-      description: 'Substituição de capacitor de partida e recarga de fluido refrigerante ecológico R410A balançeada por peso.',
-      tag: 'Acabamento',
-      created_at: new Date(Date.now() - 12 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-104',
-      profile_id: 'prof-1',
-      image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-      title: 'Infraestrutura Embutida para Ar-Condicionado',
-      description: 'Passagem de dreno em PVC rígido e linha frigorígena embutida em alvenaria antes da pintura.',
-      tag: 'Instalação',
-      created_at: new Date(Date.now() - 18 * 86400000).toISOString(),
-    }
-  ],
-  'prof-2': [
-    {
-      id: 'photo-201',
-      profile_id: 'prof-2',
-      image_url: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=800&q=80',
-      title: 'Troca de Tela OLED iPhone 14 Pro na Hora',
-      description: 'Substituição com tela de alta taxa de atualização, mantendo True Tone e vedação contra respingos de água.',
-      tag: 'Manutenção',
-      created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-202',
-      profile_id: 'prof-2',
-      image_url: 'https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=800&q=80',
-      title: 'Microsoldagem de Conector de Carga Tipo-C',
-      description: 'Restauração de trilhas rompidas em placa mãe com máscara UV e solda em pasta de baixa fusão.',
-      tag: 'Manutenção',
-      created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-203',
-      profile_id: 'prof-2',
-      image_url: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80',
-      title: 'Troca de Bateria Original com 100% de Saúde',
-      description: 'Substituição segura com programação do chip serial para exibição de saúde da bateria sem alertas.',
-      tag: 'Instalação',
-      created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
-    }
-  ],
-  'prof-3': [
-    {
-      id: 'photo-301',
-      profile_id: 'prof-3',
-      image_url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
-      title: 'Conserto de Placa Principal Smart TV 4K',
-      description: 'Substituição de chipset com estação de retrabalho infravermelho e reprogramação de memória EPROM.',
-      tag: 'Manutenção',
-      created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-302',
-      profile_id: 'prof-3',
-      image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-      title: 'Reparo de Inversor de Frequência Industrial',
-      description: 'Troca do banco de capacitores eletrolíticos e módulos IGBT com teste de carga em bancada.',
-      tag: 'Acabamento',
-      created_at: new Date(Date.now() - 9 * 86400000).toISOString(),
-    }
-  ],
-  'prof-4': [
-    {
-      id: 'photo-401',
-      profile_id: 'prof-4',
-      image_url: 'https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=800&q=80',
-      title: 'Impressão 3D em Resina 8K de Alta Definição',
-      description: 'Estátua colecionável com detalhes microscópicos, curada em câmara UV e primer para pintura.',
-      tag: 'Acabamento',
-      created_at: new Date(Date.now() - 6 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-402',
-      profile_id: 'prof-4',
-      image_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
-      title: 'Prototipagem de Peça Mecânica em ABS e Nylon',
-      description: 'Engrenagens resistentes e carcaças funcionais para testes de encaixe e validação de engenharia.',
-      tag: 'Instalação',
-      created_at: new Date(Date.now() - 11 * 86400000).toISOString(),
-    }
-  ],
-  'prof-5': [
-    {
-      id: 'photo-501',
-      profile_id: 'prof-5',
-      image_url: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80',
-      title: 'Bolo Floral Artístico de 3 Andares para Casamento',
-      description: 'Massa amanteigada de baunilha com recheio de frutas vermelhas e cobertura aveludada em chantininho espatulado.',
-      tag: 'Acabamento',
-      created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-502',
-      profile_id: 'prof-5',
-      image_url: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80',
-      title: 'Mesa de Doces Finos & Brigadeiros Gourmet',
-      description: 'Brigadeiros belgas com castanha-do-pará, camafeu de nozes e trufas artesanais banhadas em ouro comestível.',
-      tag: 'Acabamento',
-      created_at: new Date(Date.now() - 8 * 86400000).toISOString(),
-    },
-    {
-      id: 'photo-503',
-      profile_id: 'prof-5',
-      image_url: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
-      title: 'Bolo Temático Infantil com Escultura em Açúcar',
-      description: 'Decoração personalizada com modelagem manual em pasta americana e bolo molhadinho de brigadeiro.',
-      tag: 'Acabamento',
-      created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-    }
-  ]
-};
+export const INITIAL_GALLERY: Record<string, ServicePhoto[]> = {};
+
+export function isMockDemoPhoto(photo: { id?: string; image_url?: string; title?: string } | null | undefined): boolean {
+  if (!photo) return true;
+  const id = photo.id || '';
+  if (/^photo-(10|20|30|40|50)\d$/.test(id)) return true;
+  const url = photo.image_url || '';
+  const mockPatterns = [
+    'photo-1621905252507',
+    'photo-1581092335397',
+    'photo-1545259741',
+    'photo-1581092160607',
+    'photo-1591799264318',
+    'photo-1588508065123',
+    'photo-1511707171634',
+    'photo-1581092335878',
+    'photo-1633493763531',
+    'photo-1535141192574',
+    'photo-1578985545062',
+    'photo-1597740985671',
+    'photo-1517077304055',
+    'photo-1621905251189',
+    'photo-1558494949',
+    'photo-1504307651254',
+    'photo-1503387762',
+    'photo-1486006920555'
+  ];
+  return mockPatterns.some(pat => url.includes(pat));
+}
 
 export const INITIAL_TESTIMONIALS: Record<string, Testimonial[]> = {
   'prof-1': [

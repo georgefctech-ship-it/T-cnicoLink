@@ -79,7 +79,11 @@ export default function App() {
     }
     setCurrentView(view);
     setProfileNotFoundUsername(null);
-    if (view !== 'public_profile') {
+    if (view === 'public_profile') {
+      const targetId = targetProfile?.id || activeProfile?.id;
+      const isOwnerOrAdmin = currentUser && (currentUser.id === targetId || currentUser.role === 'admin' || currentUser.email === 'georgefctec@gmail.com');
+      setIsPublicVisitor(!isOwnerOrAdmin);
+    } else {
       setIsPublicVisitor(false);
     }
     updateBrowserUrl(view, targetProfile?.username || activeProfile?.username);
@@ -730,17 +734,50 @@ export default function App() {
         )}
 
         {!isLoadingRoute && currentView === 'panel' && (
-          <PainelView
-            profile={activeProfile}
-            gallery={gallery}
-            onSaveProfile={handleSaveProfile}
-            onAddPhoto={handleAddPhoto}
-            onUpdatePhoto={handleUpdatePhoto}
-            onDeletePhoto={handleDeletePhoto}
-            setCurrentView={navigateTo}
-            isSupabaseConnected={isSupabaseConnected}
-            systemSettings={systemSettings}
-          />
+          currentUser ? (
+            <PainelView
+              profile={activeProfile}
+              gallery={gallery}
+              onSaveProfile={handleSaveProfile}
+              onAddPhoto={handleAddPhoto}
+              onUpdatePhoto={handleUpdatePhoto}
+              onDeletePhoto={handleDeletePhoto}
+              setCurrentView={navigateTo}
+              isSupabaseConnected={isSupabaseConnected}
+              systemSettings={systemSettings}
+            />
+          ) : (
+            <div className="min-h-[65vh] flex items-center justify-center p-4">
+              <div className="max-w-md w-full bg-white border border-gray-200 rounded-3xl p-8 text-center shadow-lg">
+                <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-7 h-7" />
+                </div>
+                <span className="px-3 py-1 bg-orange-50 text-orange-700 text-[11px] font-bold rounded-full uppercase tracking-wider border border-orange-200">
+                  Acesso Restrito
+                </span>
+                <h2 className="text-xl font-bold text-gray-900 mt-3 font-['Syne',sans-serif]">
+                  Painel de Edição Bloqueado
+                </h2>
+                <p className="mt-2 text-xs text-gray-600 leading-relaxed">
+                  Visitantes não possuem permissão para realizar alterações, publicar fotos ou editar dados de perfil. Para gerenciar seu site, entre na sua conta.
+                </p>
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => navigateTo('login')}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+                  >
+                    Entrar na Minha Conta
+                  </button>
+                  <button
+                    onClick={() => navigateTo('home')}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors"
+                  >
+                    Voltar ao Início
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {!isLoadingRoute && currentView === 'public_profile' && (

@@ -28,7 +28,8 @@ import {
   Trash2,
   User,
   ThumbsUp,
-  MessageCircle
+  MessageCircle,
+  Image as ImageIcon
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Profile, ServicePhoto, Testimonial, SystemSettings } from '../types';
@@ -309,45 +310,57 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
           )}
 
           {/* Photos Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {filteredPhotos.map((photo) => (
-              <div
-                key={photo.id}
-                onClick={() => setSelectedPhoto(photo)}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden cursor-pointer group hover:border-orange-500 transition-all shadow-2xs"
-              >
-                <div className="relative aspect-video bg-gray-100 overflow-hidden">
-                  <img
-                    src={photo.image_url}
-                    alt={photo.title || 'Foto de serviço realizado'}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                  {photo.tag && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/80 backdrop-blur-md text-white text-[10px] font-bold rounded">
-                      {photo.tag}
-                    </span>
-                  )}
-                  <div className="absolute inset-0 bg-gray-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="px-3 py-1 bg-white text-gray-900 text-[11px] font-bold rounded-lg shadow-sm">
-                      Ver Foto
-                    </span>
+          {filteredPhotos.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center shadow-2xs">
+              <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-2 text-orange-600">
+                <ImageIcon className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-xs text-gray-900">Nenhuma foto adicionada ainda</h3>
+              <p className="text-[11px] text-gray-500 mt-1 max-w-xs mx-auto">
+                As fotos de serviços executados cadastradas pelo administrador ou profissional aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredPhotos.map((photo) => (
+                <div
+                  key={photo.id}
+                  onClick={() => setSelectedPhoto(photo)}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden cursor-pointer group hover:border-orange-500 transition-all shadow-2xs"
+                >
+                  <div className="relative aspect-video bg-gray-100 overflow-hidden">
+                    <img
+                      src={photo.image_url}
+                      alt={photo.title || 'Foto de serviço realizado'}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    {photo.tag && (
+                      <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/80 backdrop-blur-md text-white text-[10px] font-bold rounded">
+                        {photo.tag}
+                      </span>
+                    )}
+                    <div className="absolute inset-0 bg-gray-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="px-3 py-1 bg-white text-gray-900 text-[11px] font-bold rounded-lg shadow-sm">
+                        Ver Foto
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3">
+                    <h3 className="font-bold text-xs text-gray-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                      {photo.title || 'Serviço Executado'}
+                    </h3>
+                    {photo.description && (
+                      <p className="text-[11px] text-gray-600 mt-1 line-clamp-2 leading-relaxed">
+                        {photo.description}
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                <div className="p-3">
-                  <h3 className="font-bold text-xs text-gray-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                    {photo.title || 'Serviço Executado'}
-                  </h3>
-                  {photo.description && (
-                    <p className="text-[11px] text-gray-600 mt-1 line-clamp-2 leading-relaxed">
-                      {photo.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Client Testimonials Section - Real-time Reviews */}

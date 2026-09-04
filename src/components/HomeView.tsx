@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
   Smartphone, 
   Sparkles, 
   MessageSquare, 
-  Camera, 
   Zap, 
   ShieldCheck, 
   ArrowRight, 
@@ -16,34 +15,12 @@ import {
   Star,
   Flame,
   Check,
-  Edit3,
-  Upload,
-  RotateCcw,
-  X,
-  Link as LinkIcon,
-  Loader2,
   ImageIcon
 } from 'lucide-react';
 import { Profile, AppView } from '../types';
 import { getDisplayHost } from '../lib/profileUrlHelper';
-import { compressImage } from '../lib/imageHelper';
-
-export const PRESET_DEMO_PHOTOS = [
-  { img: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80', tag: 'Instalação Split Inverter', cat: 'Refrigeração' },
-  { img: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80', tag: 'Higienização Química com Vácuo', cat: 'Refrigeração' },
-  { img: 'https://images.unsplash.com/photo-1597740985671-2a8a3b80532e?auto=format&fit=crop&w=800&q=80', tag: 'Troca de Tela OLED iPhone', cat: 'Celulares' },
-  { img: 'https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=800&q=80', tag: 'Microsoldagem em Placa SMD', cat: 'Celulares' },
-  { img: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80', tag: 'Conserto Placa Smart TV 4K', cat: 'Eletrônica' },
-  { img: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=800&q=80', tag: 'Diagnóstico em Osciloscópio', cat: 'Eletrônica' },
-  { img: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80', tag: 'Quadro Trifásico de Disjuntores', cat: 'Elétrica' },
-  { img: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80', tag: 'Cabeamento Estruturado e Racks', cat: 'TI / Redes' },
-  { img: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80', tag: 'Instalação de Painéis Solares', cat: 'Energia Solar' },
-  { img: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80', tag: 'Bolo Decorado em Chantininho', cat: 'Confeitaria' },
-  { img: 'https://images.unsplash.com/photo-1581092335878-2d9ff86ca2bf?auto=format&fit=crop&w=800&q=80', tag: 'Prototipagem Mecânica CAD', cat: 'Impressão 3D' },
-  { img: 'https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=800&q=80', tag: 'Impressão 3D Resina 8K', cat: 'Impressão 3D' },
-  { img: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80', tag: 'Marcenaria & Móveis Planejados', cat: 'Marcenaria' },
-  { img: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80', tag: 'Mecânica e Revisão Geral', cat: 'Automotivo' }
-];
+import { getLocalGallery } from '../lib/supabaseClient';
+import { isMockDemoPhoto } from '../lib/mockData';
 
 interface HomeViewProps {
   onStart: () => void;
@@ -62,7 +39,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [orcamentosMes, setOrcamentosMes] = useState<number>(20);
   const [selectedDemoIndex, setSelectedDemoIndex] = useState<number>(0);
 
-  // Exibir apenas perfis demonstrativos de técnicos e prestadores na Demonstração em Tempo Real
+  // Limpar qualquer cache legado de fotos de demonstração
+  useEffect(() => {
+    try {
+      localStorage.removeItem('tecnicolink_demo_photos_v3');
+    } catch {}
+  }, []);
+
+  // Exibir perfis de técnicos e prestadores na Demonstração em Tempo Real
   const showcaseProfiles = profiles.filter(p => 
     p.role !== 'admin' && 
     p.id !== 'prof-admin' && 
@@ -73,6 +57,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   const displayProfiles = showcaseProfiles.length > 0 ? showcaseProfiles : profiles.filter(p => p.id !== 'prof-admin');
   const activeProfile = displayProfiles[selectedDemoIndex] || displayProfiles[0] || profiles[0];
+
+  // Apenas fotos reais adicionadas pelo administrador ou técnico (sem fotos fakes de demonstração)
+  const adminPhotos = activeProfile ? getLocalGallery(activeProfile.id).filter(p => !isMockDemoPhoto(p)) : [];
 
   // ROI estimate: A professional link with real photos increases closing rate by ~35%
   const orcamentosAtuaisFechados = Math.round(orcamentosMes * 0.3); // 30% closing rate without portfolio
@@ -86,98 +73,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
     'prof-4': { label: 'Modelagem 3D & Protótipos', icon: '🖨️', highlight: 'Impressão 3D' },
     'prof-5': { label: 'Confeiteira de Festas & Bolos', icon: '🎂', highlight: 'Doces Finos' }
   };
-
-  const DEFAULT_DEMO_PHOTOS_MAP: Record<string, { img: string; tag: string }[]> = {
-    'prof-1': [
-      { img: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=600&q=80', tag: 'Instalação Split Inverter' },
-      { img: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80', tag: 'Higienização Química com Vácuo' }
-    ],
-    'prof-2': [
-      { img: 'https://images.unsplash.com/photo-1597740985671-2a8a3b80532e?auto=format&fit=crop&w=600&q=80', tag: 'Troca de Tela OLED iPhone' },
-      { img: 'https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=600&q=80', tag: 'Microsoldagem de Placa Android' }
-    ],
-    'prof-3': [
-      { img: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80', tag: 'Conserto Placa Smart TV 4K' },
-      { img: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=600&q=80', tag: 'Diagnóstico em Osciloscópio' }
-    ],
-    'prof-4': [
-      { img: 'https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=600&q=80', tag: 'Impressão 3D Resina 8K' },
-      { img: 'https://images.unsplash.com/photo-1581092335878-2d9ff86ca2bf?auto=format&fit=crop&w=600&q=80', tag: 'Prototipagem Mecânica CAD' }
-    ],
-    'prof-5': [
-      { img: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=600&q=80', tag: 'Bolo Decorado em Chantininho' },
-      { img: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80', tag: 'Kit Festa Doces Finos Casamento' }
-    ]
-  };
-
-  const [customDemoPhotosMap, setCustomDemoPhotosMap] = useState<Record<string, { img: string; tag: string }[]>>(() => {
-    try {
-      const saved = localStorage.getItem('tecnicolink_demo_photos_v3');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {}
-    return DEFAULT_DEMO_PHOTOS_MAP;
-  });
-
-  const [showEditDemoModal, setShowEditDemoModal] = useState<boolean>(false);
-  const [editingSlot, setEditingSlot] = useState<number>(0);
-  const [modalCustomUrl, setModalCustomUrl] = useState<string>('');
-  const [modalCustomTag, setModalCustomTag] = useState<string>('');
-  const [isProcessingPhoto, setIsProcessingPhoto] = useState<boolean>(false);
-  const demoFileInputRef = useRef<HTMLInputElement>(null);
-
-  const profileKey = activeProfile?.id || 'prof-1';
-  const currentDemoPhotos = customDemoPhotosMap[profileKey] || DEFAULT_DEMO_PHOTOS_MAP[profileKey] || customDemoPhotosMap['prof-1'] || DEFAULT_DEMO_PHOTOS_MAP['prof-1'];
-
-  function handleSaveDemoPhoto(imgUrl: string, tagText: string, slotIndex: number) {
-    const updated = { ...customDemoPhotosMap };
-    const currentList = [...(updated[profileKey] || DEFAULT_DEMO_PHOTOS_MAP[profileKey] || currentDemoPhotos)];
-    currentList[slotIndex] = {
-      img: imgUrl,
-      tag: tagText || currentList[slotIndex]?.tag || 'Serviço Profissional'
-    };
-    updated[profileKey] = currentList;
-    setCustomDemoPhotosMap(updated);
-    try {
-      localStorage.setItem('tecnicolink_demo_photos_v3', JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Falha ao salvar fotos da demo', e);
-    }
-  }
-
-  async function handleDemoFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    setIsProcessingPhoto(true);
-    try {
-      const compressed = await compressImage(files[0], {
-        maxWidth: 800,
-        maxHeight: 600,
-        quality: 0.82,
-        mimeType: 'image/jpeg'
-      });
-      handleSaveDemoPhoto(compressed, modalCustomTag || 'Serviço em Destaque', editingSlot);
-      setShowEditDemoModal(false);
-      setModalCustomUrl('');
-      setModalCustomTag('');
-    } catch (err) {
-      console.error('Erro ao processar imagem:', err);
-    } finally {
-      setIsProcessingPhoto(false);
-      if (demoFileInputRef.current) demoFileInputRef.current.value = '';
-    }
-  }
-
-  function handleResetDemoPhotos() {
-    const updated = { ...customDemoPhotosMap };
-    delete updated[profileKey];
-    setCustomDemoPhotosMap(updated);
-    try {
-      localStorage.setItem('tecnicolink_demo_photos_v3', JSON.stringify(updated));
-    } catch {}
-    setShowEditDemoModal(false);
-  }
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#1F2937]">
@@ -267,7 +162,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
               {/* Category selector - all equal size and same texture */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                 {displayProfiles.map((p, idx) => {
-                  const isSelected = (activeProfile?.id === p.id);
                   const meta = demoCategoryMeta[p.id] || { 
                     label: p.profession, 
                     icon: '🔧', 
@@ -281,11 +175,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         setSelectedDemoIndex(idx);
                         onSelectProfile(p);
                       }}
-                      className={`w-full h-11 px-3 border rounded-xl transition-all duration-150 flex items-center justify-between gap-1.5 text-xs text-left shadow-2xs cursor-pointer bg-white hover:bg-gray-50 text-gray-800 hover:text-gray-900 font-medium ${
-                        isSelected 
-                          ? 'border-gray-400 hover:border-gray-500 shadow-xs ring-2 ring-gray-200/80' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className="w-full h-11 px-3 border border-gray-200 hover:border-gray-300 rounded-xl transition-all duration-150 flex items-center justify-between gap-1.5 text-xs text-left shadow-2xs cursor-pointer bg-white hover:bg-gray-50 text-gray-800 hover:text-gray-900 font-medium"
                     >
                       <span className="flex items-center gap-1.5 min-w-0 truncate">
                         <span className="text-sm shrink-0">{meta.icon}</span>
@@ -382,55 +272,52 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
                 </div>
 
-                {/* Header for demo photos with customization button */}
+                {/* Header for real photos */}
                 <div className="flex items-center justify-between mt-3.5 mb-1.5">
                   <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-orange-600" />
                     <span>Fotos de Serviços Realizados</span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingSlot(0);
-                      setModalCustomTag(currentDemoPhotos[0]?.tag || '');
-                      setShowEditDemoModal(true);
-                    }}
-                    className="text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Trocar fotos de demonstração por suas próprias fotos ou modelos prontos"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>Alterar Fotos</span>
-                  </button>
+                  {adminPhotos.length > 0 && (
+                    <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                      {adminPhotos.length} {adminPhotos.length === 1 ? 'foto cadastrada' : 'fotos cadastradas'}
+                    </span>
+                  )}
                 </div>
 
-                {/* 2 sample photos with direct edit triggers */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  {currentDemoPhotos.map((photo, i) => (
-                    <div key={i} className="group relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-xs">
-                      <img
-                        src={photo.img}
-                        alt={photo.tag}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <span className="absolute bottom-1 left-1 bg-gray-900/80 text-[10px] text-white px-1.5 py-0.5 rounded font-medium truncate max-w-[90%] pointer-events-none">
-                        {photo.tag}
-                      </span>
-                      <button
-                        type="button"
+                {/* Photos grid - ONLY real photos added by administrator */}
+                {adminPhotos.length > 0 ? (
+                  <div className={`grid ${adminPhotos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2.5`}>
+                    {adminPhotos.slice(0, 2).map((photo, i) => (
+                      <div
+                        key={photo.id || i}
                         onClick={() => {
-                          setEditingSlot(i);
-                          setModalCustomTag(photo.tag || '');
-                          setShowEditDemoModal(true);
+                          onSelectProfile(activeProfile);
+                          setCurrentView('public_profile');
                         }}
-                        className="absolute inset-0 bg-gray-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1 cursor-pointer"
-                        title={`Clique para trocar a foto ${i + 1}`}
+                        className="group relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-xs cursor-pointer"
+                        title="Ver no portfólio completo"
                       >
-                        <Camera className="w-4 h-4 text-orange-400" />
-                        <span>Trocar Foto {i + 1}</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <img
+                          src={photo.image_url}
+                          alt={photo.title || photo.tag || 'Foto de serviço'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {(photo.tag || photo.title) && (
+                          <span className="absolute bottom-1 left-1 bg-gray-900/80 text-[10px] text-white px-1.5 py-0.5 rounded font-medium truncate max-w-[90%] pointer-events-none">
+                            {photo.tag || photo.title}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-lg text-center my-1">
+                    <ImageIcon className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                    <p className="text-[11px] font-semibold text-gray-600">Nenhuma foto adicionada ainda</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">As fotos cadastradas pelo administrador aparecem aqui.</p>
+                  </div>
+                )}
 
                 {/* Simulated CTA button */}
                 <div className="mt-3">
@@ -662,212 +549,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Modal: Personalizar Fotos da Demonstração em Tempo Real */}
-      {showEditDemoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 overflow-hidden">
-            
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
-                  <Camera className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm sm:text-base">
-                    Mudar Fotos da Demonstração em Tempo Real
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    Selecione ou envie fotos para visualizar seu nicho na página inicial
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowEditDemoModal(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-5">
-              
-              {/* Slot Switcher Tabs */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-2">
-                  Qual foto você deseja alterar agora?
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[0, 1].map((slot) => {
-                    const isSelected = editingSlot === slot;
-                    const photo = currentDemoPhotos[slot];
-                    return (
-                      <button
-                        key={slot}
-                        type="button"
-                        onClick={() => {
-                          setEditingSlot(slot);
-                          setModalCustomTag(photo?.tag || '');
-                        }}
-                        className={`p-2.5 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-orange-600 bg-orange-50/70 ring-1 ring-orange-500'
-                            : 'border-gray-200 hover:border-gray-300 bg-white'
-                        }`}
-                      >
-                        <img
-                          src={photo?.img}
-                          alt=""
-                          className="w-12 h-9 object-cover rounded-md border border-gray-200 shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <span className={`text-[10px] font-bold block ${isSelected ? 'text-orange-700' : 'text-gray-500'}`}>
-                            FOTO {slot + 1}
-                          </span>
-                          <span className="text-xs font-semibold text-gray-900 truncate block">
-                            {photo?.tag || 'Sem título'}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Tag / Legenda da Foto */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-600 mb-1">
-                  Legenda / Etiqueta da Foto {editingSlot + 1}:
-                </label>
-                <input
-                  type="text"
-                  value={modalCustomTag}
-                  onChange={(e) => setModalCustomTag(e.target.value)}
-                  placeholder="Ex: Instalação Ar Split 12.000 BTU"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none font-medium"
-                />
-              </div>
-
-              {/* Action 1: Upload from device */}
-              <div className="p-3.5 bg-orange-50/50 border border-orange-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-orange-600" />
-                    <span>Opção 1: Enviar Foto do seu Celular ou PC</span>
-                  </span>
-                  {isProcessingPhoto && (
-                    <span className="text-[11px] text-orange-600 font-semibold flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Otimizando...</span>
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-gray-600">
-                  Carregue qualquer foto de serviço real que você tenha realizado.
-                </p>
-                <input
-                  type="file"
-                  ref={demoFileInputRef}
-                  onChange={handleDemoFileUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  disabled={isProcessingPhoto}
-                  onClick={() => demoFileInputRef.current?.click()}
-                  className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Escolher Arquivo de Foto</span>
-                </button>
-              </div>
-
-              {/* Action 2: Modelos Prontos por Categoria */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Opção 2: Escolher Modelo de Alta Definição (1 Clique)</span>
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-100 rounded-xl bg-gray-50/50">
-                  {PRESET_DEMO_PHOTOS.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        handleSaveDemoPhoto(preset.img, modalCustomTag || preset.tag, editingSlot);
-                        setShowEditDemoModal(false);
-                      }}
-                      className="group relative aspect-video rounded-lg overflow-hidden border border-gray-200 hover:border-orange-500 bg-white text-left transition-all cursor-pointer"
-                    >
-                      <img src={preset.img} alt={preset.tag} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-1.5">
-                        <span className="text-[8px] font-bold text-orange-300 uppercase truncate">{preset.cat}</span>
-                        <span className="text-[9px] font-semibold text-white leading-tight truncate">{preset.tag}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action 3: Via Link URL */}
-              <div className="space-y-1.5 pt-2 border-t border-gray-100">
-                <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                  <LinkIcon className="w-3.5 h-3.5 text-gray-500" />
-                  <span>Opção 3: Inserir Link Direto de Imagem (URL)</span>
-                </span>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={modalCustomUrl}
-                    onChange={(e) => setModalCustomUrl(e.target.value)}
-                    placeholder="https://exemplo.com/minha-foto.jpg"
-                    className="flex-1 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:ring-1 focus:ring-orange-500"
-                  />
-                  <button
-                    type="button"
-                    disabled={!modalCustomUrl.trim()}
-                    onClick={() => {
-                      if (modalCustomUrl.trim()) {
-                        handleSaveDemoPhoto(modalCustomUrl.trim(), modalCustomTag || 'Serviço Profissional', editingSlot);
-                        setShowEditDemoModal(false);
-                        setModalCustomUrl('');
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 disabled:opacity-40 text-white rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer"
-                  >
-                    Aplicar
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-3.5 sm:p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handleResetDemoPhotos}
-                className="text-xs text-gray-500 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Restaurar Fotos Padrão</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEditDemoModal(false)}
-                className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
-              >
-                Concluir
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );
