@@ -62,7 +62,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [orcamentosMes, setOrcamentosMes] = useState<number>(20);
   const [selectedDemoIndex, setSelectedDemoIndex] = useState<number>(0);
 
-  const activeProfile = profiles[selectedDemoIndex] || profiles[0];
+  // Exibir apenas perfis demonstrativos de técnicos e prestadores na Demonstração em Tempo Real
+  const showcaseProfiles = profiles.filter(p => 
+    p.role !== 'admin' && 
+    p.id !== 'prof-admin' && 
+    p.username !== 'george-admin' &&
+    !p.profession?.toLowerCase().includes('gestor') &&
+    !p.profession?.toLowerCase().includes('administrador')
+  );
+
+  const displayProfiles = showcaseProfiles.length > 0 ? showcaseProfiles : profiles.filter(p => p.id !== 'prof-admin');
+  const activeProfile = displayProfiles[selectedDemoIndex] || displayProfiles[0] || profiles[0];
 
   // ROI estimate: A professional link with real photos increases closing rate by ~35%
   const orcamentosAtuaisFechados = Math.round(orcamentosMes * 0.3); // 30% closing rate without portfolio
@@ -189,7 +199,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           {/* Main Headline */}
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight font-['Syne',sans-serif]">
+            <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-[-0.02em] text-gray-900 leading-[1.2] sm:leading-[1.15] font-['Plus_Jakarta_Sans',sans-serif]">
               Seu portfólio profissional no WhatsApp em{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600">
                 menos de 5 minutos
@@ -239,24 +249,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           {/* Live Interactive Preview Bento Grid */}
           <div className="mt-12 max-w-5xl mx-auto bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600">
-                  Demonstração em Tempo Real
+            <div className="pb-4 border-b border-gray-200 space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600">
+                    Demonstração em Tempo Real
+                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mt-0.5">
+                    Veja como fica o site de diferentes profissionais:
+                  </h3>
+                </div>
+                <span className="text-xs text-gray-500 hidden md:block">
+                  Clique para alternar o segmento
                 </span>
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 mt-0.5">
-                  Veja como fica o site de diferentes profissionais:
-                </h3>
               </div>
               
-              {/* Category selector */}
-              <div className="flex flex-wrap gap-2">
-                {profiles.map((p, idx) => {
+              {/* Category selector - all equal size and same texture */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                {displayProfiles.map((p, idx) => {
                   const isSelected = (activeProfile?.id === p.id);
                   const meta = demoCategoryMeta[p.id] || { 
                     label: p.profession, 
                     icon: '🔧', 
-                    highlight: p.city_state.split('-')[1] || 'Serviço' 
+                    highlight: p.city_state?.split('-')[1] || 'Serviço'
                   };
 
                   return (
@@ -266,18 +281,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         setSelectedDemoIndex(idx);
                         onSelectProfile(p);
                       }}
-                      className={`px-3 py-2 border text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-2xs ${
+                      className={`w-full h-11 px-3 border rounded-xl transition-all flex items-center justify-between gap-1.5 text-xs text-left shadow-2xs ${
                         isSelected 
-                          ? 'bg-orange-600 text-white border-orange-600 ring-2 ring-orange-400 font-bold shadow-sm scale-[1.02]' 
-                          : 'bg-white hover:bg-gray-100 text-gray-800 border-gray-300'
+                          ? 'bg-white text-gray-950 border-gray-900 ring-1 ring-gray-900/10 font-bold' 
+                          : 'bg-white hover:bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300 font-medium'
                       }`}
                     >
-                      <span className="text-sm">{meta.icon}</span>
-                      <span>{meta.label}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ml-0.5 ${
+                      <span className="flex items-center gap-1.5 min-w-0 truncate">
+                        <span className="text-sm shrink-0">{meta.icon}</span>
+                        <span className="truncate">{meta.label}</span>
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 font-medium ${
                         isSelected 
-                          ? 'bg-orange-700 text-white border-orange-500' 
-                          : 'text-orange-700 bg-orange-50 border-orange-200'
+                          ? 'text-gray-950 bg-gray-100 border-gray-300 font-bold' 
+                          : 'text-gray-700 bg-gray-100 border-gray-200'
                       }`}>
                         {meta.highlight}
                       </span>
@@ -446,7 +463,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600">
               Transformação Imediata
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1 font-['Syne',sans-serif]">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1 font-['Plus_Jakarta_Sans',sans-serif] tracking-tight">
               Como você envia orçamentos hoje vs com o TécnicoLink
             </h2>
             <p className="mt-2 text-xs sm:text-sm text-gray-600">
