@@ -11,18 +11,25 @@ import {
   Code,
   Layers,
   ArrowRight,
-  Info
+  Info,
+  Image as ImageIcon
 } from 'lucide-react';
-import { SUPABASE_SQL_SCRIPT } from '../lib/sqlScripts';
+import { SUPABASE_SQL_SCRIPT, STORAGE_FIX_SQL_SCRIPT } from '../lib/sqlScripts';
 
 export const SqlSchemaView: React.FC = () => {
-  const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'tables' | 'rls' | 'storage' | 'triggers'>('all');
+  const [copiedScript, setCopiedScript] = useState<'full' | 'storage' | null>(null);
+  const [activeTab, setActiveTab] = useState<'full' | 'storage'>('full');
 
-  function handleCopy() {
+  function handleCopyFull() {
     navigator.clipboard.writeText(SUPABASE_SQL_SCRIPT);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setCopiedScript('full');
+    setTimeout(() => setCopiedScript(null), 2500);
+  }
+
+  function handleCopyStorage() {
+    navigator.clipboard.writeText(STORAGE_FIX_SQL_SCRIPT);
+    setCopiedScript('storage');
+    setTimeout(() => setCopiedScript(null), 2500);
   }
 
   return (
@@ -35,24 +42,34 @@ export const SqlSchemaView: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold mb-2.5">
                 <Database className="w-3.5 h-3.5" />
-                <span>Etapa 1: Arquitetura & Banco de Dados (Supabase)</span>
+                <span>Configuração do Supabase (Banco de Dados & Storage)</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-                Estrutura de Tabelas, RLS e Storage
+                Estrutura de Tabelas, RLS e Desbloqueio de Storage
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-2xl">
-                Script SQL pronto para ser executado no <strong>SQL Editor</strong> do seu painel Supabase. Criação de perfis, galeria de fotos, políticas de acesso (Row Level Security) e bucket de armazenamento.
+                Scripts prontos para executar no <strong>SQL Editor</strong> do seu Supabase. Se suas imagens estiverem travando ao enviar ou não aparecendo para visitantes, use o script de <strong>Desbloqueio de Storage</strong>.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2.5">
               <button
                 type="button"
-                onClick={handleCopy}
+                onClick={handleCopyStorage}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-xs transition-all flex items-center justify-center gap-2"
+                title="Copiar apenas o comando para liberar fotos no Supabase Storage"
+              >
+                {copiedScript === 'storage' ? <Check className="w-4 h-4 text-white" /> : <ImageIcon className="w-4 h-4" />}
+                <span>{copiedScript === 'storage' ? 'SQL DE STORAGE COPIADO!' : 'DESBLOQUEAR STORAGE (COPIAR SQL)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyFull}
                 className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg shadow-xs transition-all flex items-center justify-center gap-2"
               >
-                {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'SQL COPIADO COM SUCESSO!' : 'COPIAR SCRIPT SQL COMPLETO'}</span>
+                {copiedScript === 'full' ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedScript === 'full' ? 'SQL COMPLETO COPIADO!' : 'COPIAR SCRIPT COMPLETO'}</span>
               </button>
 
               <a
@@ -61,10 +78,39 @@ export const SqlSchemaView: React.FC = () => {
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg border border-gray-300 transition-colors flex items-center justify-center gap-2 shadow-2xs"
               >
-                <span>Abrir Supabase Dashboard</span>
+                <span>Abrir Supabase</span>
                 <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
               </a>
             </div>
+          </div>
+        </div>
+
+        {/* Dedicated Storage Diagnostic Alert */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-5 space-y-2">
+          <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
+            <ImageIcon className="w-5 h-5 text-blue-700" />
+            <span>Por que o Supabase pode estar bloqueando imagens no Storage?</span>
+          </div>
+          <p className="text-xs text-blue-900/80 leading-relaxed">
+            Geralmente ocorre por dois motivos simples no Supabase:
+          </p>
+          <ul className="text-xs text-blue-900 space-y-1 list-disc list-inside">
+            <li><strong>Bucket Privado:</strong> O bucket <code className="bg-blue-100 px-1 py-0.5 rounded font-mono font-bold">services-photos</code> foi criado sem a opção <em>"Public Bucket"</em> ativada.</li>
+            <li><strong>Políticas Restritivas de RLS em storage.objects:</strong> O Supabase por padrão bloqueia inserts se a pasta não corresponder exatamente ao <code>auth.uid()</code>.</li>
+          </ul>
+          <div className="pt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('storage');
+                handleCopyStorage();
+              }}
+              className="px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>Copiar e Visualizar Script de Desbloqueio</span>
+            </button>
+            <span className="text-xs text-blue-700 font-medium">Basta colar no SQL Editor do Supabase e clicar em Run.</span>
           </div>
         </div>
 
@@ -77,7 +123,7 @@ export const SqlSchemaView: React.FC = () => {
             </div>
             <h3 className="font-bold text-sm text-gray-900">Tabela profiles</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Ligada ao <code className="text-orange-700 font-mono font-semibold bg-orange-50 px-1 py-0.5 rounded">auth.users(id)</code> via chave primária UUID. Armazena nome completo, whatsapp com máscara, biografia, cidade/estado, avatar e slug único para a URL pública <code className="text-orange-700 font-mono font-semibold bg-orange-50 px-1 py-0.5 rounded">/p/[username]</code>.
+              Ligada ao <code className="text-orange-700 font-mono font-semibold bg-orange-50 px-1 py-0.5 rounded">auth.users(id)</code> via UUID. Armazena nome completo, whatsapp com máscara, biografia, cidade/estado, avatar e slug único para a URL pública <code className="text-orange-700 font-mono font-semibold bg-orange-50 px-1 py-0.5 rounded">/p/[username]</code>.
             </p>
           </div>
 
@@ -95,39 +141,39 @@ export const SqlSchemaView: React.FC = () => {
             <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center font-bold text-xs">
               03
             </div>
-            <h3 className="font-bold text-sm text-gray-900">Bucket 'services-photos' & RLS</h3>
+            <h3 className="font-bold text-sm text-gray-900">Buckets Públicos & RLS</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Bucket público para visualização instantânea pelos clientes sem tokens expirados. RLS restringe uploads, alterações e exclusões estritamente para a pasta do técnico autenticado <code className="text-sky-700 font-mono font-semibold bg-sky-50 px-1 py-0.5 rounded">auth.uid()</code>.
+              Buckets públicos para visualização instantânea pelos clientes sem tokens expirados. Suporta <code className="text-sky-700 font-mono font-semibold bg-sky-50 px-1 py-0.5 rounded">services-photos</code>, <code className="text-sky-700 font-mono font-semibold bg-sky-50 px-1 py-0.5 rounded">service-photos</code> e <code className="text-sky-700 font-mono font-semibold bg-sky-50 px-1 py-0.5 rounded">avatars</code>.
             </p>
           </div>
 
         </div>
 
-        {/* Troubleshooting Guide & How to Apply */}
-        <div className="space-y-3">
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-emerald-950 space-y-1">
-              <span className="font-bold block text-emerald-900">
-                Solução para erro "ERROR: 42P01: relation profiles does not exist"
-              </span>
-              <p className="text-emerald-800 leading-relaxed">
-                Este erro acontece quando apenas um fragmento de alteração (<code>ALTER TABLE</code> ou <code>CREATE POLICY</code>) é executado antes da tabela existir. O script completo abaixo é <strong>auto-suficiente (idempotente)</strong>: ele cria as extensões, a tabela <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">profiles</code>, galeria, depoimentos, storage e todas as políticas de segurança de uma única vez.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-orange-600 text-white flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="font-bold text-gray-900 block">Como aplicar no Supabase em 1 minuto:</span>
-                <span className="text-gray-600">1. Acesse seu projeto Supabase ➔ 2. Clique em <strong>SQL Editor</strong> no menu lateral ➔ 3. Cole o código abaixo ➔ 4. Clique em <strong>Run (Executar)</strong>.</span>
-              </div>
-            </div>
-          </div>
+        {/* Tab Selection */}
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('full')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+              activeTab === 'full' 
+                ? 'bg-orange-600 text-white' 
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Script Completo do Sistema (Tabelas + RLS + Storage)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('storage')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+              activeTab === 'storage' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+            <span>Script Rápido: Desbloquear Storage de Fotos</span>
+          </button>
         </div>
 
         {/* Code Viewer */}
@@ -135,19 +181,30 @@ export const SqlSchemaView: React.FC = () => {
           <div className="bg-gray-950 px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Code className="w-4 h-4 text-orange-500" />
-              <span className="text-xs font-mono font-bold text-gray-300">supabase_schema_rls.sql</span>
+              <span className="text-xs font-mono font-bold text-gray-300">
+                {activeTab === 'full' ? 'supabase_schema_rls_completo.sql' : 'desbloquear_storage_fotos.sql'}
+              </span>
             </div>
             <button
-              onClick={handleCopy}
+              onClick={activeTab === 'full' ? handleCopyFull : handleCopyStorage}
               className="text-xs text-orange-400 hover:text-orange-300 font-bold flex items-center gap-1.5 transition-colors"
             >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copiado!' : 'Copiar SQL'}</span>
+              {(activeTab === 'full' ? copiedScript === 'full' : copiedScript === 'storage') ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400">Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copiar este SQL</span>
+                </>
+              )}
             </button>
           </div>
 
           <pre className="p-4 sm:p-5 text-xs font-mono text-gray-300 bg-gray-950/90 overflow-x-auto leading-relaxed max-h-[500px] overflow-y-auto selection:bg-orange-500/30">
-            <code>{SUPABASE_SQL_SCRIPT}</code>
+            <code>{activeTab === 'full' ? SUPABASE_SQL_SCRIPT : STORAGE_FIX_SQL_SCRIPT}</code>
           </pre>
         </div>
 

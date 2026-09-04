@@ -146,9 +146,14 @@ export default function App() {
         foundLocal = allCandidates.find(p => p && p.id && p.id.toLowerCase().trim() === rawUsername);
       }
 
-      // Explicit match for George Admin master profile
-      if (!foundLocal && (rawUsername === 'george-admin' || rawUsername === 'admin' || rawUsername === 'george')) {
-        foundLocal = ADMIN_MASTER_PROFILE;
+      // Explicit match for George Admin single master profile (supports both george-admin and georgefctech-admin)
+      if (!foundLocal && (rawUsername === 'george-admin' || rawUsername === 'georgefctech-admin' || rawUsername === 'admin' || rawUsername === 'george')) {
+        foundLocal = freshProfiles.find(p => p.role === 'admin' || p.id === 'prof-admin') || ADMIN_MASTER_PROFILE;
+      }
+
+      // Explicit match for Jhonatas Climatização (supports legacy marcos links seamlessly)
+      if (!foundLocal && (rawUsername === 'jhonatas-climatizacao' || rawUsername === 'jhonatas-refrigeracao' || rawUsername === 'marcos-silva' || rawUsername === 'marcos-climatizacao')) {
+        foundLocal = freshProfiles.find(p => p.id === 'prof-1' || p.full_name?.includes('Jhonatas')) || INITIAL_PROFILES.find(p => p.id === 'prof-1');
       }
 
       // Check direct localStorage keys (tecnicolink_prof_...)

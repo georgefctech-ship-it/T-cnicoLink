@@ -195,49 +195,46 @@ CREATE POLICY "Users manage own testimonials"
     USING (auth.uid() = profile_id OR public.is_admin())
     WITH CHECK (auth.uid() = profile_id OR public.is_admin());
 
--- 10. BUCKET DE STORAGE ('services-photos')
+-- 10. BUCKETS DE STORAGE ('services-photos', 'service-photos', 'avatars')
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'services-photos',
-    'services-photos',
-    true,
-    5242880, -- 5MB
-    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']
-)
-ON CONFLICT (id) DO UPDATE SET public = true;
+VALUES 
+    ('services-photos', 'services-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
+    ('service-photos', 'service-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
+    ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'])
+ON CONFLICT (id) DO UPDATE SET 
+    public = true,
+    file_size_limit = 10485760,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'];
 
--- Políticas de Storage
+-- Políticas de Storage Desbloqueadas
 DROP POLICY IF EXISTS "Acesso público às fotos de serviços" ON storage.objects;
-CREATE POLICY "Acesso público às fotos de serviços"
-    ON storage.objects FOR SELECT
-    USING (bucket_id = 'services-photos');
-
 DROP POLICY IF EXISTS "Usuários autenticados podem enviar fotos" ON storage.objects;
-CREATE POLICY "Usuários autenticados podem enviar fotos"
-    ON storage.objects FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        bucket_id = 'services-photos' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
-
 DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias fotos" ON storage.objects;
-CREATE POLICY "Usuários podem atualizar suas próprias fotos"
-    ON storage.objects FOR UPDATE
-    TO authenticated
-    USING (
-        bucket_id = 'services-photos' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
-
 DROP POLICY IF EXISTS "Usuários podem deletar suas próprias fotos" ON storage.objects;
-CREATE POLICY "Usuários podem deletar suas próprias fotos"
+DROP POLICY IF EXISTS "Permitir upload de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir leitura pública de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir gerenciamento de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir exclusao de fotos" ON storage.objects;
+
+-- 1. Leitura pública para todos os visitantes verem as fotos sem bloqueio
+CREATE POLICY "Permitir leitura pública de fotos"
+    ON storage.objects FOR SELECT
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+-- 2. Permite upload de imagens
+CREATE POLICY "Permitir upload de fotos"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+-- 3. Permite atualização e exclusão
+CREATE POLICY "Permitir gerenciamento de fotos"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'))
+    WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+CREATE POLICY "Permitir exclusao de fotos"
     ON storage.objects FOR DELETE
-    TO authenticated
-    USING (
-        bucket_id = 'services-photos' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 
 -- 11. TRIGGER PARA AUTO-CRIAÇÃO DE PERFIL NO CADASTRO
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -276,5 +273,53 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+`;
+
+export const STORAGE_FIX_SQL_SCRIPT = `-- ================================================================
+-- SCRIPT DE DESBLOQUEIO DE IMAGENS E STORAGE (SUPABASE)
+-- Execute no SQL Editor do Supabase se o envio de fotos estiver travando
+-- ou se as fotos não aparecerem para visitantes.
+-- ================================================================
+
+-- 1. Garante buckets públicos para fotos e avatares (até 10MB)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+    ('services-photos', 'services-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
+    ('service-photos', 'service-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
+    ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'])
+ON CONFLICT (id) DO UPDATE SET 
+    public = true,
+    file_size_limit = 10485760,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'];
+
+-- 2. Limpa políticas restritivas que travam o upload
+DROP POLICY IF EXISTS "Acesso público às fotos de serviços" ON storage.objects;
+DROP POLICY IF EXISTS "Usuários autenticados podem enviar fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Usuários podem deletar suas próprias fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir upload de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir leitura pública de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir gerenciamento de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir exclusao de fotos" ON storage.objects;
+
+-- 3. Libera visualização pública (para qualquer cliente ver a foto no site)
+CREATE POLICY "Permitir leitura pública de fotos"
+    ON storage.objects FOR SELECT
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+-- 4. Libera upload de imagens no painel
+CREATE POLICY "Permitir upload de fotos"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+-- 5. Libera atualização e exclusão
+CREATE POLICY "Permitir gerenciamento de fotos"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'))
+    WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+CREATE POLICY "Permitir exclusao de fotos"
+    ON storage.objects FOR DELETE
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 `;
 

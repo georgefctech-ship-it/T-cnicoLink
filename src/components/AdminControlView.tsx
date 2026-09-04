@@ -89,22 +89,45 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
   const target30UsersMRR = 30 * proPriceMonthly;
   const target100UsersMRR = 100 * proPriceMonthly;
 
-  // Filtered profiles
-  const filteredProfiles = profiles.filter(p => {
-    const matchesSearch = 
-      p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.profession.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.city_state.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const pStatus = p.status || 'active';
-    const matchesStatus = statusFilter === 'all' || pStatus === statusFilter;
-    
-    const pPlan = p.plan || 'free';
-    const matchesPlan = planFilter === 'all' || pPlan === planFilter;
+  // Filtered profiles with strict single administrator enforcement
+  const filteredProfiles = (profiles || [])
+    .reduce((acc: Profile[], p: Profile) => {
+      const isCurrentAdmin = p.role === 'admin' || p.id === 'prof-admin' || p.username === 'george-admin' || p.username === 'georgefctech-admin';
+      if (isCurrentAdmin) {
+        const alreadyHasAdmin = acc.some(item => item.role === 'admin' || item.id === 'prof-admin' || item.username === 'george-admin');
+        if (!alreadyHasAdmin) {
+          acc.push({
+            ...p,
+            id: 'prof-admin',
+            full_name: 'George Ferreira Costa (Admin Master)',
+            username: 'george-admin',
+            role: 'admin',
+            plan: 'enterprise',
+            status: 'active',
+            is_verified: true,
+            city_state: 'Boituva - SP'
+          });
+        }
+      } else {
+        acc.push(p);
+      }
+      return acc;
+    }, [] as Profile[])
+    .filter(p => {
+      const matchesSearch = 
+        p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.profession.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.city_state.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const pStatus = p.status || 'active';
+      const matchesStatus = statusFilter === 'all' || pStatus === statusFilter;
+      
+      const pPlan = p.plan || 'free';
+      const matchesPlan = planFilter === 'all' || pPlan === planFilter;
 
-    return matchesSearch && matchesStatus && matchesPlan;
-  });
+      return matchesSearch && matchesStatus && matchesPlan;
+    });
 
   const handleToggleSuspend = (profile: Profile) => {
     const currentStatus = profile.status || 'active';
@@ -706,8 +729,8 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                                 )}
                               </button>
 
-                              {/* Delete Button */}
-                              {p.role !== 'admin' && (
+                              {/* Delete Button - protege apenas o Admin Master principal */}
+                              {p.id !== 'prof-admin' && p.username !== 'george-admin' && (
                                 <button
                                   type="button"
                                   onClick={() => setDeletingProfile(p)}

@@ -110,11 +110,66 @@ export function getLocalProfiles(): Profile[] {
     list = [...INITIAL_PROFILES];
   }
 
-  // Guarantee ADMIN_MASTER_PROFILE is always included
-  const hasAdmin = list.some(p => p.username === 'george-admin' || p.id === 'prof-admin');
-  if (!hasAdmin) {
-    list.unshift(ADMIN_MASTER_PROFILE);
-  }
+  // 1. Remove duplicate admin profiles - ensure ONLY ONE administrator in the system
+  // Merge any details from georgefctech-admin into the canonical admin
+  const foundAdminDupes = list.filter(p => 
+    p.role === 'admin' || 
+    p.id === 'prof-admin' || 
+    p.username === 'george-admin' || 
+    p.username === 'georgefctech-admin' || 
+    p.full_name?.toLowerCase().includes('admin master') ||
+    p.full_name?.toLowerCase().includes('profissional técnico')
+  );
+
+  const bestAvatar = foundAdminDupes.find(p => p.avatar_url && !p.avatar_url.includes('unsplash'))?.avatar_url || ADMIN_MASTER_PROFILE.avatar_url;
+
+  const canonicalAdmin: Profile = {
+    ...ADMIN_MASTER_PROFILE,
+    id: 'prof-admin',
+    full_name: 'George Ferreira Costa (Admin Master)',
+    username: 'george-admin',
+    profession: 'Gestor & Administrador da Plataforma',
+    city_state: 'Boituva - SP',
+    avatar_url: bestAvatar,
+    role: 'admin',
+    status: 'active',
+    plan: 'enterprise',
+    is_verified: true,
+  };
+
+  // Filter out any admin duplicates so there is strictly ONE administrator
+  const nonAdmins = list.filter(p => 
+    p.role !== 'admin' && 
+    p.id !== 'prof-admin' && 
+    p.username !== 'george-admin' && 
+    p.username !== 'georgefctech-admin' &&
+    !p.full_name?.toLowerCase().includes('profissional técnico')
+  );
+
+  list = [canonicalAdmin, ...nonAdmins];
+
+  // 2. Rename Marcos Silva Climatização to Jhonatas Climatização
+  list = list.map(p => {
+    if (p.id === 'prof-1' || p.full_name?.toLowerCase().includes('marcos') || p.username?.toLowerCase().includes('marcos')) {
+      return {
+        ...p,
+        full_name: 'Jhonatas Climatização',
+        username: 'jhonatas-climatizacao',
+        profession: p.profession || 'Técnico em Refrigeração & Ar-Condicionado',
+        whatsapp_number: p.whatsapp_number || '(15) 98819-3561',
+        phone_number: p.phone_number || '(15) 98819-3561',
+        bio_short: p.bio_short?.replace(/Marcos/gi, 'Jhonatas') || 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade e 1 ano de garantia.'
+      };
+    }
+    return p;
+  });
+
+  // Clean up legacy/duplicate individual localStorage keys
+  try {
+    localStorage.removeItem('tecnicolink_prof_georgefctech-admin');
+    localStorage.removeItem('tecnicolink_prof_marcos-silva');
+    localStorage.removeItem('tecnicolink_prof_marcos-climatizacao');
+  } catch {}
 
   // Scan localStorage for any individually registered profiles (fail-safe)
   try {
@@ -125,6 +180,14 @@ export function getLocalProfiles(): Profile[] {
         if (itemRaw) {
           const itemProf = JSON.parse(itemRaw);
           if (itemProf && itemProf.username) {
+            // Do not re-add duplicate admins or obsolete names
+            if (itemProf.role === 'admin' || itemProf.username === 'georgefctech-admin' || itemProf.username === 'george-admin') {
+              continue;
+            }
+            if (itemProf.username?.includes('marcos') || itemProf.full_name?.includes('Marcos')) {
+              itemProf.full_name = 'Jhonatas Climatização';
+              itemProf.username = 'jhonatas-climatizacao';
+            }
             const alreadyExists = list.some(p => p.username?.toLowerCase() === itemProf.username?.toLowerCase() || p.id === itemProf.id);
             if (!alreadyExists) {
               list.push(itemProf);
@@ -286,13 +349,21 @@ export function getLocalTestimonials(profileId: string): Testimonial[] {
     const raw = localStorage.getItem(STORAGE_KEY_TESTIMONIALS);
     if (raw) {
       const all: Record<string, Testimonial[]> = JSON.parse(raw);
-      if (all[profileId]) return all[profileId];
+      if (all[profileId]) {
+        return all[profileId].map(t => ({
+          ...t,
+          comment: t.comment?.replace(/Marcos/gi, 'Jhonatas') || t.comment
+        }));
+      }
     }
   } catch (e) {
     console.error('Error reading local testimonials:', e);
   }
   const initial = INITIAL_TESTIMONIALS[profileId] || [];
-  return initial;
+  return initial.map(t => ({
+    ...t,
+    comment: t.comment?.replace(/Marcos/gi, 'Jhonatas') || t.comment
+  }));
 }
 
 export function saveLocalTestimonial(testimonial: Testimonial): Testimonial {

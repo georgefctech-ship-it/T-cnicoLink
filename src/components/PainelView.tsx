@@ -45,7 +45,7 @@ import {
 import { PlanUpgradeModal } from './PlanUpgradeModal';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
 import { ProfessionSelect } from './ProfessionSelect';
-import { compressImage, PRESET_AVATARS } from '../lib/imageHelper';
+import { compressImage, dataUrlToBlob, PRESET_AVATARS } from '../lib/imageHelper';
 
 interface PainelViewProps {
   profile: Profile;
@@ -146,71 +146,83 @@ export const PainelView: React.FC<PainelViewProps> = ({
     setUploadingPhoto(true);
     const file = files[0];
 
+    // 1. Pré-otimizar imagem localmente para velocidade e segurança contra erros de cota/tamanho
+    let compressedDataUrl = '';
+    let compressedBlob: Blob | null = null;
+    try {
+      compressedDataUrl = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.84,
+        mimeType: 'image/jpeg'
+      });
+      compressedBlob = dataUrlToBlob(compressedDataUrl);
+    } catch (compressErr) {
+      console.warn('Falha na compressão preliminar da foto:', compressErr);
+    }
+
     const supabase = getSupabase();
     let finalImageUrl = '';
 
-    if (supabase && isSupabaseConnected) {
+    // 2. Tentar enviar para o Storage do Supabase (com suporte a fallback entre 'services-photos' e 'service-photos')
+    if (supabase && isSupabaseConnected && compressedBlob) {
       try {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${formData.id}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('services-photos')
-          .upload(filePath, file);
+        const cleanFolder = (formData.username || formData.id || 'servicos').replace(/[^a-zA-Z0-9_-]/g, '');
+        const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
+        const filePath = `${cleanFolder}/${filename}`;
 
-        if (!uploadError) {
+        let uploadRes = await supabase.storage
+          .from('services-photos')
+          .upload(filePath, compressedBlob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        let targetBucket = 'services-photos';
+
+        if (uploadRes.error && uploadRes.error.message?.toLowerCase().includes('bucket not found')) {
+          uploadRes = await supabase.storage
+            .from('service-photos')
+            .upload(filePath, compressedBlob, {
+              contentType: 'image/jpeg',
+              upsert: true
+            });
+          targetBucket = 'service-photos';
+        }
+
+        if (!uploadRes.error) {
           const { data: { publicUrl } } = supabase.storage
-            .from('services-photos')
+            .from(targetBucket)
             .getPublicUrl(filePath);
           finalImageUrl = publicUrl;
+        } else {
+          console.warn('Aviso do Supabase Storage:', uploadRes.error.message);
         }
       } catch (err) {
-        console.warn('Storage upload fallback to base64', err);
+        console.warn('Storage upload fallback:', err);
       }
     }
 
+    // 3. Se o storage não estiver conectado ou retornar erro de política, salva com a imagem otimizada em base64
     if (!finalImageUrl) {
-      // FileReader fallback with auto compression to prevent QuotaExceededError
-      try {
-        const compressedDataUrl = await compressImage(file, {
-          maxWidth: 800,
-          maxHeight: 800,
-          quality: 0.82,
-          mimeType: 'image/jpeg'
-        });
-
-        const newPhoto: ServicePhoto = {
-          id: 'photo-' + Date.now(),
-          profile_id: formData.id,
-          image_url: compressedDataUrl,
-          title: newPhotoTitle || 'Serviço Executado com Excelência',
-          description: newPhotoDesc || 'Trabalho realizado com acabamento de alto padrão e materiais certificados.',
-          tag: newPhotoTag,
-          created_at: new Date().toISOString(),
-        };
-        onAddPhoto(newPhoto);
-        setNewPhotoTitle('');
-        setNewPhotoDesc('');
-      } catch (err) {
-        console.error('Falha ao otimizar foto:', err);
-      } finally {
-        setUploadingPhoto(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-      return;
+      finalImageUrl = compressedDataUrl;
     }
 
-    const newPhoto: ServicePhoto = {
-      id: 'photo-' + Date.now(),
-      profile_id: formData.id,
-      image_url: finalImageUrl,
-      title: newPhotoTitle || 'Serviço Executado com Excelência',
-      description: newPhotoDesc || 'Trabalho realizado com acabamento de alto padrão e materiais certificados.',
-      tag: newPhotoTag,
-      created_at: new Date().toISOString(),
-    };
-    onAddPhoto(newPhoto);
-    setNewPhotoTitle('');
-    setNewPhotoDesc('');
+    if (finalImageUrl) {
+      const newPhoto: ServicePhoto = {
+        id: 'photo-' + Date.now(),
+        profile_id: formData.id,
+        image_url: finalImageUrl,
+        title: newPhotoTitle || 'Serviço Executado com Excelência',
+        description: newPhotoDesc || 'Trabalho realizado com acabamento de alto padrão e materiais certificados.',
+        tag: newPhotoTag,
+        created_at: new Date().toISOString(),
+      };
+      onAddPhoto(newPhoto);
+      setNewPhotoTitle('');
+      setNewPhotoDesc('');
+    }
+
     setUploadingPhoto(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
@@ -230,7 +242,34 @@ export const PainelView: React.FC<PainelViewProps> = ({
         mimeType: 'image/jpeg'
       });
 
-      const updated = { ...formData, avatar_url: optimizedAvatar };
+      let finalAvatarUrl = optimizedAvatar;
+      const supabase = getSupabase();
+      if (supabase && isSupabaseConnected) {
+        try {
+          const avatarBlob = dataUrlToBlob(optimizedAvatar);
+          const cleanFolder = (formData.username || formData.id || 'avatars').replace(/[^a-zA-Z0-9_-]/g, '');
+          const filename = `avatar-${Date.now()}.jpg`;
+          const filePath = `${cleanFolder}/${filename}`;
+
+          const uploadRes = await supabase.storage
+            .from('services-photos')
+            .upload(filePath, avatarBlob, {
+              contentType: 'image/jpeg',
+              upsert: true
+            });
+
+          if (!uploadRes.error) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('services-photos')
+              .getPublicUrl(filePath);
+            finalAvatarUrl = publicUrl;
+          }
+        } catch (storageErr) {
+          console.warn('Storage avatar upload fallback to base64:', storageErr);
+        }
+      }
+
+      const updated = { ...formData, avatar_url: finalAvatarUrl };
       setFormData(updated);
       onSaveProfile(updated);
       setAvatarSaveSuccess(true);
