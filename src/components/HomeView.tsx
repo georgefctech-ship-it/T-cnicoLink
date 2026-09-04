@@ -281,21 +281,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         setSelectedDemoIndex(idx);
                         onSelectProfile(p);
                       }}
-                      className={`w-full h-11 px-3 border rounded-xl transition-all flex items-center justify-between gap-1.5 text-xs text-left shadow-2xs ${
+                      className={`w-full h-11 px-3 border rounded-xl transition-all duration-150 flex items-center justify-between gap-1.5 text-xs text-left shadow-2xs cursor-pointer bg-white hover:bg-gray-50 text-gray-800 hover:text-gray-900 font-medium ${
                         isSelected 
-                          ? 'bg-white text-gray-950 border-gray-900 ring-1 ring-gray-900/10 font-bold' 
-                          : 'bg-white hover:bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300 font-medium'
+                          ? 'border-gray-400 hover:border-gray-500 shadow-xs ring-2 ring-gray-200/80' 
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <span className="flex items-center gap-1.5 min-w-0 truncate">
                         <span className="text-sm shrink-0">{meta.icon}</span>
                         <span className="truncate">{meta.label}</span>
                       </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 font-medium ${
-                        isSelected 
-                          ? 'text-gray-950 bg-gray-100 border-gray-300 font-bold' 
-                          : 'text-gray-700 bg-gray-100 border-gray-200'
-                      }`}>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border shrink-0 font-medium text-gray-700 bg-gray-100 border-gray-200">
                         {meta.highlight}
                       </span>
                     </button>
