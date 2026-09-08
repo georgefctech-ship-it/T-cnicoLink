@@ -210,7 +210,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
 
     if (finalImageUrl) {
       const newPhoto: ServicePhoto = {
-        id: 'photo-' + Date.now(),
+        id: crypto.randomUUID(),
         profile_id: formData.id,
         image_url: finalImageUrl,
         title: newPhotoTitle || 'Serviço Executado com Excelência',
@@ -315,7 +315,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
     }
 
     const newPhoto: ServicePhoto = {
-      id: 'photo-' + Date.now() + Math.random().toString(36).substring(2, 5),
+      id: crypto.randomUUID(),
       profile_id: formData.id,
       image_url: url,
       title: newPhotoTitle.trim() || 'Serviço Executado com Excelência',
@@ -338,7 +338,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
       return;
     }
     const newPhoto: ServicePhoto = {
-      id: 'photo-' + Date.now() + Math.random().toString(36).substr(2, 4),
+      id: crypto.randomUUID(),
       profile_id: formData.id,
       image_url: sampleUrl,
       title: sampleTitle,
@@ -392,32 +392,11 @@ export const PainelView: React.FC<PainelViewProps> = ({
     if (e) e.preventDefault();
     setIsSaving(true);
 
-    const supabase = getSupabase();
-    if (supabase && isSupabaseConnected) {
-      try {
-        await supabase
-          .from('profiles')
-          .upsert({
-            id: formData.id,
-            full_name: formData.full_name,
-            username: formData.username,
-            profession: formData.profession,
-            whatsapp_number: formData.whatsapp_number,
-            city_state: formData.city_state,
-            bio_short: formData.bio_short,
-            avatar_url: formData.avatar_url,
-            years_experience: formData.years_experience,
-            accepts_pix: formData.accepts_pix,
-            accepts_cards: formData.accepts_cards,
-            offers_warranty: formData.offers_warranty,
-            updated_at: new Date().toISOString(),
-          });
-      } catch (err) {
-        console.error('Error saving to supabase', err);
-      }
+    try {
+      await onSaveProfile(formData);
+    } catch (err) {
+      console.warn('Error saving profile:', err);
     }
-
-    onSaveProfile(formData);
     setIsSaving(false);
 
     // Trigger celebration confetti

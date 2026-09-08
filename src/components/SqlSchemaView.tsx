@@ -12,13 +12,15 @@ import {
   Layers,
   ArrowRight,
   Info,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Radio,
+  Globe
 } from 'lucide-react';
-import { SUPABASE_SQL_SCRIPT, STORAGE_FIX_SQL_SCRIPT } from '../lib/sqlScripts';
+import { SUPABASE_SQL_SCRIPT, STORAGE_FIX_SQL_SCRIPT, GLOBAL_REALTIME_SQL_SCRIPT } from '../lib/sqlScripts';
 
 export const SqlSchemaView: React.FC = () => {
-  const [copiedScript, setCopiedScript] = useState<'full' | 'storage' | null>(null);
-  const [activeTab, setActiveTab] = useState<'full' | 'storage'>('full');
+  const [copiedScript, setCopiedScript] = useState<'full' | 'storage' | 'realtime' | null>(null);
+  const [activeTab, setActiveTab] = useState<'realtime' | 'full' | 'storage'>('realtime');
 
   function handleCopyFull() {
     navigator.clipboard.writeText(SUPABASE_SQL_SCRIPT);
@@ -29,6 +31,12 @@ export const SqlSchemaView: React.FC = () => {
   function handleCopyStorage() {
     navigator.clipboard.writeText(STORAGE_FIX_SQL_SCRIPT);
     setCopiedScript('storage');
+    setTimeout(() => setCopiedScript(null), 2500);
+  }
+
+  function handleCopyRealtime() {
+    navigator.clipboard.writeText(GLOBAL_REALTIME_SQL_SCRIPT);
+    setCopiedScript('realtime');
     setTimeout(() => setCopiedScript(null), 2500);
   }
 
@@ -55,12 +63,22 @@ export const SqlSchemaView: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-2.5">
               <button
                 type="button"
+                onClick={handleCopyRealtime}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-xs transition-all flex items-center justify-center gap-2"
+                title="Copiar SQL para sincronização em tempo real mundial"
+              >
+                {copiedScript === 'realtime' ? <Check className="w-4 h-4 text-white" /> : <Radio className="w-4 h-4 text-white" />}
+                <span>{copiedScript === 'realtime' ? 'SQL TEMPO REAL COPIADO!' : 'SINCRONIZAR TEMPO REAL (COPIAR SQL)'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleCopyStorage}
                 className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-xs transition-all flex items-center justify-center gap-2"
                 title="Copiar apenas o comando para liberar fotos no Supabase Storage"
               >
                 {copiedScript === 'storage' ? <Check className="w-4 h-4 text-white" /> : <ImageIcon className="w-4 h-4" />}
-                <span>{copiedScript === 'storage' ? 'SQL DE STORAGE COPIADO!' : 'DESBLOQUEAR STORAGE (COPIAR SQL)'}</span>
+                <span>{copiedScript === 'storage' ? 'SQL DE STORAGE COPIADO!' : 'DESBLOQUEAR STORAGE'}</span>
               </button>
 
               <button
@@ -150,29 +168,41 @@ export const SqlSchemaView: React.FC = () => {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('full')}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-              activeTab === 'full' 
-                ? 'bg-orange-600 text-white' 
+            onClick={() => setActiveTab('realtime')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'realtime' 
+                ? 'bg-emerald-600 text-white shadow-xs' 
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            Script Completo do Sistema (Tabelas + RLS + Storage)
+            <Radio className="w-3.5 h-3.5" />
+            <span>Sincronização em Tempo Real Global (Qualquer PC)</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('storage')}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shrink-0 ${
               activeTab === 'storage' 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-blue-600 text-white shadow-xs' 
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>Script Rápido: Desbloquear Storage de Fotos</span>
+            <span>Desbloquear Storage de Fotos</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('full')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors shrink-0 ${
+              activeTab === 'full' 
+                ? 'bg-orange-600 text-white shadow-xs' 
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Script Completo do Sistema (Tabelas + RLS)
           </button>
         </div>
 
@@ -182,14 +212,14 @@ export const SqlSchemaView: React.FC = () => {
             <div className="flex items-center gap-2">
               <Code className="w-4 h-4 text-orange-500" />
               <span className="text-xs font-mono font-bold text-gray-300">
-                {activeTab === 'full' ? 'supabase_schema_rls_completo.sql' : 'desbloquear_storage_fotos.sql'}
+                {activeTab === 'realtime' ? 'sincronizacao_tempo_real_global.sql' : activeTab === 'full' ? 'supabase_schema_rls_completo.sql' : 'desbloquear_storage_fotos.sql'}
               </span>
             </div>
             <button
-              onClick={activeTab === 'full' ? handleCopyFull : handleCopyStorage}
+              onClick={activeTab === 'realtime' ? handleCopyRealtime : activeTab === 'full' ? handleCopyFull : handleCopyStorage}
               className="text-xs text-orange-400 hover:text-orange-300 font-bold flex items-center gap-1.5 transition-colors"
             >
-              {(activeTab === 'full' ? copiedScript === 'full' : copiedScript === 'storage') ? (
+              {copiedScript === activeTab ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-emerald-400">Copiado!</span>
@@ -204,7 +234,9 @@ export const SqlSchemaView: React.FC = () => {
           </div>
 
           <pre className="p-4 sm:p-5 text-xs font-mono text-gray-300 bg-gray-950/90 overflow-x-auto leading-relaxed max-h-[500px] overflow-y-auto selection:bg-orange-500/30">
-            <code>{activeTab === 'full' ? SUPABASE_SQL_SCRIPT : STORAGE_FIX_SQL_SCRIPT}</code>
+            <code>
+              {activeTab === 'realtime' ? GLOBAL_REALTIME_SQL_SCRIPT : activeTab === 'full' ? SUPABASE_SQL_SCRIPT : STORAGE_FIX_SQL_SCRIPT}
+            </code>
           </pre>
         </div>
 

@@ -323,3 +323,67 @@ CREATE POLICY "Permitir exclusao de fotos"
     USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 `;
 
+export const GLOBAL_REALTIME_SQL_SCRIPT = `-- ================================================================
+-- SCRIPT DE SINCRONIZAÇÃO EM TEMPO REAL GLOBAL (SUPABASE)
+-- Execute no SQL Editor do Supabase (https://supabase.com/dashboard)
+-- 
+-- Permite que alterações feitas no perfil, fotos e links em qualquer
+-- computador ou celular sejam sincronizadas EM TEMPO REAL para todos
+-- os dispositivos do mundo sem ficar preso apenas ao cache local.
+-- ================================================================
+
+-- 1. Habilita RLS flexível nas tabelas principais
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.service_gallery ENABLE ROW LEVEL SECURITY;
+
+-- 2. Políticas de Leitura Pública
+DROP POLICY IF EXISTS "Public profiles read" ON public.profiles;
+DROP POLICY IF EXISTS "Permitir leitura de perfis" ON public.profiles;
+CREATE POLICY "Permitir leitura de perfis" 
+    ON public.profiles FOR SELECT 
+    USING (true);
+
+DROP POLICY IF EXISTS "Public gallery read" ON public.service_gallery;
+DROP POLICY IF EXISTS "Permitir leitura de galeria" ON public.service_gallery;
+CREATE POLICY "Permitir leitura de galeria" 
+    ON public.service_gallery FOR SELECT 
+    USING (true);
+
+-- 3. Políticas de Escrita e Atualização Globais (Permite sincronização de qualquer PC)
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Permitir sincronização de perfis" ON public.profiles;
+CREATE POLICY "Permitir sincronização de perfis" 
+    ON public.profiles FOR ALL 
+    USING (true) 
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users insert photos with limit" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users can update own photos" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users can delete own photos" ON public.service_gallery;
+DROP POLICY IF EXISTS "Permitir sincronização de galeria" ON public.service_gallery;
+CREATE POLICY "Permitir sincronização de galeria" 
+    ON public.service_gallery FOR ALL 
+    USING (true) 
+    WITH CHECK (true);
+
+-- 4. Habilita publicação Realtime do Supabase (WebSockets ativos para perfil e fotos)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'service_gallery'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.service_gallery;
+  END IF;
+END $$;
+`;
+
+

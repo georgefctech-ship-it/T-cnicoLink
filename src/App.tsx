@@ -32,6 +32,14 @@ import {
   getStoredActiveProfileId,
   saveStoredActiveProfileId
 } from './lib/supabaseClient';
+import { 
+  fetchCloudProfiles, 
+  fetchCloudGallery, 
+  saveCloudProfile, 
+  saveCloudPhoto, 
+  deleteCloudPhoto, 
+  subscribeToGlobalRealtime 
+} from './lib/cloudSync';
 import { INITIAL_PROFILES, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './lib/mockData';
 import { decodeProfilePayload } from './lib/profileUrlHelper';
 
@@ -352,8 +360,54 @@ export default function App() {
       });
     }
 
+    // Connect global real-time synchronization across all devices & PCs
+    const unsubscribeRealtime = subscribeToGlobalRealtime({
+      onProfileUpdated: (updatedProf) => {
+        setProfiles(prev => {
+          const exists = prev.some(p => p.id === updatedProf.id || (p.username && p.username === updatedProf.username));
+          return exists
+            ? prev.map(p => (p.id === updatedProf.id || (p.username && p.username === updatedProf.username)) ? { ...p, ...updatedProf } : p)
+            : [updatedProf, ...prev];
+        });
+        setActiveProfile(curr => {
+          if (!curr) return updatedProf;
+          if (curr.id === updatedProf.id || (curr.username && curr.username === updatedProf.username)) {
+            return { ...curr, ...updatedProf };
+          }
+          return curr;
+        });
+      },
+      onProfileDeleted: (deletedId) => {
+        setProfiles(prev => prev.filter(p => p.id !== deletedId));
+      },
+      onPhotoAdded: (newPhoto, profileId) => {
+        setActiveProfile(curr => {
+          if (curr && (curr.id === profileId || curr.id === newPhoto.profile_id)) {
+            setGallery(prev => [newPhoto, ...prev.filter(p => p.id !== newPhoto.id)]);
+          }
+          return curr;
+        });
+      },
+      onPhotoDeleted: (photoId) => {
+        setGallery(prev => prev.filter(p => p.id !== photoId));
+      }
+    });
+
+    // Fetch live cloud profiles from server persistence and Supabase
+    fetchCloudProfiles().then(cloudProfs => {
+      if (cloudProfs && cloudProfs.length > 0) {
+        setProfiles(cloudProfs);
+        setActiveProfile(curr => {
+          if (!curr) return cloudProfs[0];
+          const match = cloudProfs.find(p => p.id === curr.id || p.username === curr.username);
+          return match ? { ...curr, ...match } : curr;
+        });
+      }
+    });
+
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      unsubscribeRealtime();
     };
   }, []);
 
@@ -379,7 +433,8 @@ export default function App() {
   }
 
   async function handleSaveProfile(updated: Profile) {
-    const saved = saveLocalProfile(updated);
+    // Save to Cloud (Server API + Supabase + Local Storage)
+    const saved = await saveCloudProfile(updated);
     setActiveProfile(saved);
     saveStoredActiveProfileId(saved.id);
     setProfiles(prev => {
@@ -388,91 +443,28 @@ export default function App() {
         ? prev.map(p => (p.id === saved.id || (p.username && p.username === saved.username)) ? saved : p) 
         : [saved, ...prev];
     });
-
-    const supabase = getSupabase();
-    // Validate UUID format before attempting Supabase upsert to prevent Postgres type errors
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.id);
-    if (supabase && isUuid) {
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .upsert({
-            id: saved.id,
-            full_name: saved.full_name,
-            username: saved.username,
-            profession: saved.profession,
-            specialties: saved.specialties,
-            whatsapp_number: saved.whatsapp_number,
-            phone_number: saved.phone_number,
-            bio_short: saved.bio_short,
-            avatar_url: saved.avatar_url,
-            cover_url: saved.cover_url,
-            city_state: saved.city_state,
-            years_experience: saved.years_experience,
-            accepts_pix: saved.accepts_pix,
-            accepts_cards: saved.accepts_cards,
-            offers_warranty: saved.offers_warranty,
-            role: saved.role,
-            status: saved.status,
-            plan: saved.plan,
-            is_verified: saved.is_verified,
-            max_photos: saved.max_photos,
-            monthly_views_limit: saved.monthly_views_limit,
-            updated_at: new Date().toISOString()
-          });
-        if (error) {
-          console.warn('Supabase profile save error:', error);
-        }
-      } catch (err) {
-        console.error('Supabase profile save error:', err);
-      }
-    }
   }
 
-  function handleAddPhoto(photo: ServicePhoto) {
-    saveLocalGalleryPhoto(photo);
-    setGallery(prev => [photo, ...prev]);
-    const supabase = getSupabase();
-    if (supabase) {
-      supabase.from('service_gallery').insert({
-        id: photo.id,
-        profile_id: photo.profile_id,
-        title: photo.title,
-        description: photo.description,
-        tag: photo.tag,
-        image_url: photo.image_url
-      }).then(({ error }) => {
-        if (error) console.error('Supabase photo insert error:', error);
-      });
-    }
+  async function handleAddPhoto(photo: ServicePhoto) {
+    const cleanPhoto: ServicePhoto = {
+      ...photo,
+      profile_id: activeProfile?.id || photo.profile_id,
+    };
+    setGallery(prev => [cleanPhoto, ...prev.filter(p => p.id !== cleanPhoto.id)]);
+    await saveCloudPhoto(cleanPhoto);
   }
 
   function handleUpdatePhoto(updatedPhoto: ServicePhoto) {
     updateLocalGalleryPhoto(updatedPhoto);
     setGallery(prev => prev.map(p => p.id === updatedPhoto.id ? updatedPhoto : p));
-    const supabase = getSupabase();
-    if (supabase) {
-      supabase.from('service_gallery').update({
-        title: updatedPhoto.title,
-        description: updatedPhoto.description,
-        tag: updatedPhoto.tag,
-        image_url: updatedPhoto.image_url
-      }).eq('id', updatedPhoto.id).then(({ error }) => {
-        if (error) console.error('Supabase photo update error:', error);
-      });
-    }
+    saveCloudPhoto(updatedPhoto);
   }
 
-  function handleDeletePhoto(photoId: string) {
+  async function handleDeletePhoto(photoId: string) {
     if (activeProfile) {
       deleteLocalGalleryPhoto(activeProfile.id, photoId);
       setGallery(prev => prev.filter(p => p.id !== photoId));
-      const supabase = getSupabase();
-      if (supabase) {
-        supabase.from('service_gallery').delete().eq('id', photoId).then(({ error }) => {
-          if (error) console.error('Supabase photo delete error:', error);
-        });
-      }
+      await deleteCloudPhoto(activeProfile.id, photoId);
     }
   }
 
@@ -628,6 +620,13 @@ export default function App() {
     if (!activeProfile) return;
     const localPhotos = getLocalGallery(activeProfile.id);
     setGallery(localPhotos);
+
+    // Fetch from Cloud (Server API + Supabase)
+    fetchCloudGallery(activeProfile.id).then(cloudPhotos => {
+      if (cloudPhotos && cloudPhotos.length > 0) {
+        setGallery(cloudPhotos);
+      }
+    });
 
     const localTests = getLocalTestimonials(activeProfile.id);
     setTestimonials(localTests);
