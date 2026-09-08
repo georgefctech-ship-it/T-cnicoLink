@@ -10,6 +10,13 @@ const PORT = 3000;
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
+// Image uploads directory (fail-safe for Supabase Storage RLS lock)
+const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+app.use("/uploads", express.static(UPLOADS_DIR));
+
 // Server-side persistence file path
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "cloud_store.json");
@@ -244,6 +251,40 @@ app.delete("/api/gallery/:id", (req, res) => {
   }
 
   res.json({ success: true, deleted });
+});
+
+// 5. Image Upload Endpoint (Fail-safe for when Supabase Storage blocks uploads)
+app.post("/api/upload", (req, res) => {
+  try {
+    const { imageBase64, filename } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: "Missing imageBase64 data" });
+    }
+
+    // Match base64 data header
+    const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let buffer: Buffer;
+    let ext = "jpg";
+
+    if (matches && matches.length === 3) {
+      const mime = matches[1];
+      if (mime.includes("png")) ext = "png";
+      else if (mime.includes("webp")) ext = "webp";
+      buffer = Buffer.from(matches[2], "base64");
+    } else {
+      buffer = Buffer.from(imageBase64, "base64");
+    }
+
+    const safeFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = path.join(UPLOADS_DIR, safeFilename);
+    fs.writeFileSync(filePath, buffer);
+
+    const publicUrl = `/uploads/${safeFilename}`;
+    res.json({ success: true, url: publicUrl, filename: safeFilename });
+  } catch (err: any) {
+    console.error("[Upload] Error saving image:", err);
+    res.status(500).json({ error: err.message || "Failed to save image" });
+  }
 });
 
 // Start server with Vite middleware in dev or static files in prod

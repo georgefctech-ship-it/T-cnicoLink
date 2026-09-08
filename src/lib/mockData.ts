@@ -53,7 +53,7 @@ export const INITIAL_PROFILES: Profile[] = [
     id: 'prof-1',
     user_id: 'user-1',
     full_name: 'Jhonatas Climatização',
-    username: 'jhonatas-refrigeracao',
+    username: 'jhonatas-climatizacao',
     profession: 'Técnico em Refrigeração & Ar-Condicionado',
     specialties: ['Instalação Split Inverter', 'Higienização Química', 'Carga de Gás R410/R32', 'Contratos PMOC'],
     whatsapp_number: '(15) 98819-3561',

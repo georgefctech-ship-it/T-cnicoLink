@@ -38,7 +38,8 @@ import {
   saveCloudProfile, 
   saveCloudPhoto, 
   deleteCloudPhoto, 
-  subscribeToGlobalRealtime 
+  subscribeToGlobalRealtime,
+  autoSyncClientToCloud
 } from './lib/cloudSync';
 import { INITIAL_PROFILES, INITIAL_TESTIMONIALS, DEFAULT_SYSTEM_SETTINGS, ADMIN_MASTER_PROFILE } from './lib/mockData';
 import { decodeProfilePayload } from './lib/profileUrlHelper';
@@ -145,31 +146,32 @@ export default function App() {
     if (rawUsername) {
       setIsLoadingRoute(true);
 
-      // 1. Multi-tier search in local profiles, initial profiles, and individual localStorage backups
+      // 1. Fetch latest live cloud profiles from Server API and Supabase first
+      const cloudProfiles = await fetchCloudProfiles();
       const freshProfiles = getLocalProfiles();
-      const allCandidates = [...availableProfiles, ...freshProfiles, ADMIN_MASTER_PROFILE, ...INITIAL_PROFILES];
+      const allCandidates = [...cloudProfiles, ...availableProfiles, ...freshProfiles, ADMIN_MASTER_PROFILE, ...INITIAL_PROFILES];
       
-      let foundLocal = allCandidates.find(p => p && p.username && p.username.toLowerCase().trim() === rawUsername);
-      if (!foundLocal) {
-        foundLocal = allCandidates.find(p => p && p.id && p.id.toLowerCase().trim() === rawUsername);
+      let foundProfile = allCandidates.find(p => p && p.username && p.username.toLowerCase().trim() === rawUsername);
+      if (!foundProfile) {
+        foundProfile = allCandidates.find(p => p && p.id && p.id.toLowerCase().trim() === rawUsername);
       }
 
       // Explicit match for George Admin single master profile (supports both george-admin and georgefctech-admin)
-      if (!foundLocal && (rawUsername === 'george-admin' || rawUsername === 'georgefctech-admin' || rawUsername === 'admin' || rawUsername === 'george')) {
-        foundLocal = freshProfiles.find(p => p.role === 'admin' || p.id === 'prof-admin') || ADMIN_MASTER_PROFILE;
+      if (!foundProfile && (rawUsername === 'george-admin' || rawUsername === 'georgefctech-admin' || rawUsername === 'admin' || rawUsername === 'george')) {
+        foundProfile = cloudProfiles.find(p => p.role === 'admin') || freshProfiles.find(p => p.role === 'admin' || p.id === 'prof-admin') || ADMIN_MASTER_PROFILE;
       }
 
       // Explicit match for Jhonatas Climatização (supports legacy marcos links seamlessly)
-      if (!foundLocal && (rawUsername === 'jhonatas-climatizacao' || rawUsername === 'jhonatas-refrigeracao' || rawUsername === 'marcos-silva' || rawUsername === 'marcos-climatizacao')) {
-        foundLocal = freshProfiles.find(p => p.id === 'prof-1' || p.full_name?.includes('Jhonatas')) || INITIAL_PROFILES.find(p => p.id === 'prof-1');
+      if (!foundProfile && (rawUsername === 'jhonatas-climatizacao' || rawUsername === 'jhonatas-refrigeracao' || rawUsername === 'marcos-silva' || rawUsername === 'marcos-climatizacao')) {
+        foundProfile = cloudProfiles.find(p => p.id === 'prof-1' || p.id === 'e1a00000-0000-4000-8000-000000000001' || p.full_name?.includes('Jhonatas')) || freshProfiles.find(p => p.id === 'prof-1' || p.full_name?.includes('Jhonatas')) || INITIAL_PROFILES.find(p => p.id === 'prof-1');
       }
 
       // Check direct localStorage keys (tecnicolink_prof_...)
-      if (!foundLocal && typeof localStorage !== 'undefined') {
+      if (!foundProfile && typeof localStorage !== 'undefined') {
         try {
           const directStored = localStorage.getItem(`tecnicolink_prof_${rawUsername}`);
           if (directStored) {
-            foundLocal = JSON.parse(directStored);
+            foundProfile = JSON.parse(directStored);
           } else {
             for (let i = 0; i < localStorage.length; i++) {
               const key = localStorage.key(i);
@@ -178,7 +180,7 @@ export default function App() {
                 if (raw) {
                   const parsed = JSON.parse(raw);
                   if (parsed && (parsed.username?.toLowerCase() === rawUsername || parsed.id?.toLowerCase() === rawUsername)) {
-                    foundLocal = parsed;
+                    foundProfile = parsed;
                     break;
                   }
                 }
@@ -189,12 +191,37 @@ export default function App() {
           console.warn('LocalStorage fallback search error:', e);
         }
       }
-      
-      if (foundLocal) {
-        saveLocalProfile(foundLocal);
-        setActiveProfile(foundLocal);
-        const photos = getLocalGallery(foundLocal.id);
+
+      // 2. If not found locally, query Supabase directly
+      if (!foundProfile) {
+        const supabase = getSupabase();
+        if (supabase) {
+          try {
+            const { data: dbProf } = await supabase
+              .from('profiles')
+              .select('*')
+              .or(`username.eq.${rawUsername},id.eq.${rawUsername}`)
+              .maybeSingle();
+
+            if (dbProf) {
+              foundProfile = dbProf;
+            }
+          } catch (e) {
+            console.warn('Erro buscando perfil público no Supabase:', e);
+          }
+        }
+      }
+
+      if (foundProfile) {
+        saveLocalProfile(foundProfile);
+        setActiveProfile(foundProfile);
+
+        // Fetch cloud gallery photos immediately so visitor sees all photos anywhere in the world!
+        const cloudPhotos = await fetchCloudGallery(foundProfile.id);
+        const localPhotos = getLocalGallery(foundProfile.id);
+        const photos = (cloudPhotos && cloudPhotos.length > 0) ? cloudPhotos : localPhotos;
         setGallery(photos);
+
         setCurrentView('public_profile');
         setIsPublicVisitor(true);
         setProfileNotFoundUsername(null);
@@ -202,47 +229,7 @@ export default function App() {
         return;
       }
 
-      // 2. Try fetching from Supabase
-      const supabase = getSupabase();
-      if (supabase) {
-        try {
-          const { data: dbProf } = await supabase
-            .from('profiles')
-            .select('*')
-            .or(`username.eq.${rawUsername},id.eq.${rawUsername}`)
-            .maybeSingle();
-
-          if (dbProf) {
-            saveLocalProfile(dbProf);
-            setProfiles(prev => {
-              const exists = prev.some(p => p.id === dbProf.id);
-              return exists ? prev.map(p => p.id === dbProf.id ? dbProf : p) : [dbProf, ...prev];
-            });
-            setActiveProfile(dbProf);
-
-            const { data: dbPhotos } = await supabase
-              .from('gallery')
-              .select('*')
-              .eq('profile_id', dbProf.id);
-
-            if (dbPhotos && dbPhotos.length > 0) {
-              setGallery(dbPhotos);
-            } else {
-              setGallery(getLocalGallery(dbProf.id));
-            }
-
-            setCurrentView('public_profile');
-            setIsPublicVisitor(true);
-            setProfileNotFoundUsername(null);
-            setIsLoadingRoute(false);
-            return;
-          }
-        } catch (e) {
-          console.warn('Erro buscando perfil público no Supabase:', e);
-        }
-      }
-
-      // If neither local nor Supabase found it:
+      // If neither local, server, nor Supabase found it:
       setProfileNotFoundUsername(rawUsername);
       setCurrentView('public_profile');
       setIsPublicVisitor(true);
@@ -288,6 +275,9 @@ export default function App() {
 
     // Check URL route on start
     parseAndApplyRoute(window.location.pathname, loadedProfiles);
+
+    // Auto-sync any local offline data/photos to cloud server
+    autoSyncClientToCloud();
 
     // Listen to browser Back and Forward button events
     const handlePopState = () => {

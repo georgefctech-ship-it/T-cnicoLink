@@ -46,6 +46,7 @@ import { PlanUpgradeModal } from './PlanUpgradeModal';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
 import { ProfessionSelect } from './ProfessionSelect';
 import { compressImage, dataUrlToBlob, PRESET_AVATARS } from '../lib/imageHelper';
+import { uploadImageSmart } from '../lib/cloudSync';
 
 interface PainelViewProps {
   profile: Profile;
@@ -161,49 +162,17 @@ export const PainelView: React.FC<PainelViewProps> = ({
       console.warn('Falha na compressão preliminar da foto:', compressErr);
     }
 
-    const supabase = getSupabase();
     let finalImageUrl = '';
-
-    // 2. Tentar enviar para o Storage do Supabase (com suporte a fallback entre 'services-photos' e 'service-photos')
-    if (supabase && isSupabaseConnected && compressedBlob) {
-      try {
-        const cleanFolder = (formData.username || formData.id || 'servicos').replace(/[^a-zA-Z0-9_-]/g, '');
-        const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
-        const filePath = `${cleanFolder}/${filename}`;
-
-        let uploadRes = await supabase.storage
-          .from('services-photos')
-          .upload(filePath, compressedBlob, {
-            contentType: 'image/jpeg',
-            upsert: true
-          });
-
-        let targetBucket = 'services-photos';
-
-        if (uploadRes.error && uploadRes.error.message?.toLowerCase().includes('bucket not found')) {
-          uploadRes = await supabase.storage
-            .from('service-photos')
-            .upload(filePath, compressedBlob, {
-              contentType: 'image/jpeg',
-              upsert: true
-            });
-          targetBucket = 'service-photos';
-        }
-
-        if (!uploadRes.error) {
-          const { data: { publicUrl } } = supabase.storage
-            .from(targetBucket)
-            .getPublicUrl(filePath);
-          finalImageUrl = publicUrl;
-        } else {
-          console.warn('Aviso do Supabase Storage:', uploadRes.error.message);
-        }
-      } catch (err) {
-        console.warn('Storage upload fallback:', err);
-      }
+    try {
+      finalImageUrl = await uploadImageSmart(
+        compressedBlob || compressedDataUrl,
+        formData.username || formData.id || 'servicos'
+      );
+    } catch (uploadErr) {
+      console.warn('Falha no upload inteligente, usando fallback:', uploadErr);
+      finalImageUrl = compressedDataUrl;
     }
 
-    // 3. Se o storage não estiver conectado ou retornar erro de política, salva com a imagem otimizada em base64
     if (!finalImageUrl) {
       finalImageUrl = compressedDataUrl;
     }
@@ -243,30 +212,18 @@ export const PainelView: React.FC<PainelViewProps> = ({
       });
 
       let finalAvatarUrl = optimizedAvatar;
-      const supabase = getSupabase();
-      if (supabase && isSupabaseConnected) {
-        try {
-          const avatarBlob = dataUrlToBlob(optimizedAvatar);
-          const cleanFolder = (formData.username || formData.id || 'avatars').replace(/[^a-zA-Z0-9_-]/g, '');
-          const filename = `avatar-${Date.now()}.jpg`;
-          const filePath = `${cleanFolder}/${filename}`;
-
-          const uploadRes = await supabase.storage
-            .from('services-photos')
-            .upload(filePath, avatarBlob, {
-              contentType: 'image/jpeg',
-              upsert: true
-            });
-
-          if (!uploadRes.error) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('services-photos')
-              .getPublicUrl(filePath);
-            finalAvatarUrl = publicUrl;
-          }
-        } catch (storageErr) {
-          console.warn('Storage avatar upload fallback to base64:', storageErr);
+      try {
+        const avatarBlob = dataUrlToBlob(optimizedAvatar);
+        const uploaded = await uploadImageSmart(
+          avatarBlob || optimizedAvatar,
+          'avatars',
+          `avatar-${Date.now()}.jpg`
+        );
+        if (uploaded) {
+          finalAvatarUrl = uploaded;
         }
+      } catch (storageErr) {
+        console.warn('Storage avatar upload fallback to base64:', storageErr);
       }
 
       const updated = { ...formData, avatar_url: finalAvatarUrl };

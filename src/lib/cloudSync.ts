@@ -402,3 +402,131 @@ export function subscribeToGlobalRealtime(callbacks: {
     }
   };
 }
+
+/**
+ * Smart image upload:
+ * 1. Tenta Supabase Storage (services-photos / service-photos)
+ * 2. Se falhar por bloqueio de RLS ou erro de rede, faz upload no servidor (/api/upload)
+ * Retorna uma URL pública permanente acessível globalmente.
+ */
+export async function uploadImageSmart(
+  blobOrDataUrl: Blob | string,
+  folder: string = 'servicos',
+  filenameHint?: string
+): Promise<string> {
+  const supabase = getSupabase();
+  const safeFilename = filenameHint || `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
+
+  // 1. Tentar Supabase Storage se disponível
+  if (supabase) {
+    try {
+      const cleanFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '') || 'servicos';
+      const filePath = `${cleanFolder}/${safeFilename}`;
+      let blob: Blob;
+
+      if (typeof blobOrDataUrl === 'string') {
+        const arr = blobOrDataUrl.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        blob = new Blob([u8arr], { type: mime });
+      } else {
+        blob = blobOrDataUrl;
+      }
+
+      let uploadRes = await supabase.storage.from('services-photos').upload(filePath, blob, {
+        contentType: blob.type || 'image/jpeg',
+        upsert: true,
+      });
+
+      let targetBucket = 'services-photos';
+      if (uploadRes.error && uploadRes.error.message?.toLowerCase().includes('bucket not found')) {
+        uploadRes = await supabase.storage.from('service-photos').upload(filePath, blob, {
+          contentType: blob.type || 'image/jpeg',
+          upsert: true,
+        });
+        targetBucket = 'service-photos';
+      }
+
+      if (!uploadRes.error) {
+        const { data: { publicUrl } } = supabase.storage.from(targetBucket).getPublicUrl(filePath);
+        if (publicUrl) return publicUrl;
+      } else {
+        console.warn('[CloudSync] Supabase Storage aviso:', uploadRes.error.message);
+      }
+    } catch (err) {
+      console.warn('[CloudSync] Supabase Storage fallback:', err);
+    }
+  }
+
+  // 2. Fallback de alta disponibilidade: POST /api/upload
+  try {
+    let base64String = '';
+    if (typeof blobOrDataUrl === 'string') {
+      base64String = blobOrDataUrl;
+    } else {
+      base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blobOrDataUrl);
+      });
+    }
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64String, filename: safeFilename }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.url) {
+        return data.url;
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudSync] /api/upload fallback warning:', err);
+  }
+
+  // 3. Retorna a própria string se for data URL
+  return typeof blobOrDataUrl === 'string' ? blobOrDataUrl : '';
+}
+
+/**
+ * Sincroniza dados locais para a nuvem automaticamente.
+ * Garante que qualquer foto ou alteração feita no navegador do usuário
+ * seja propagada para o servidor e acessível em qualquer outro dispositivo.
+ */
+export async function autoSyncClientToCloud() {
+  try {
+    const localProfiles = getLocalProfiles();
+    for (const p of localProfiles) {
+      if (p && p.id) {
+        fetch('/api/profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(p),
+        }).catch(() => {});
+
+        const photos = getLocalGallery(p.id);
+        if (photos && photos.length > 0) {
+          for (const ph of photos) {
+            fetch('/api/gallery', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(ph),
+            }).catch(() => {});
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudSync] autoSyncClientToCloud error:', err);
+  }
+}
+
