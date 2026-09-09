@@ -88,6 +88,11 @@ export function getSupabase(): SupabaseClient | null {
   return null;
 }
 
+export function isSupabaseConfigured(): boolean {
+  const { url, anonKey } = getStoredSupabaseConfig();
+  return Boolean(url && anonKey && url.startsWith('http') && anonKey.length > 10);
+}
+
 export const STORAGE_KEY_ACTIVE_PROFILE_ID = 'tecnicolink_active_profile_id';
 
 // Local store helpers with persistence fallback

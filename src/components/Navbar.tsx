@@ -237,19 +237,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* 3. Right Action Bar */}
             <div className="flex items-center gap-2 sm:gap-3">
               
-              {/* Configurar Supabase Button (Prominent in Header) */}
-              <button
-                id="nav-btn-supabase"
-                onClick={onOpenSupabaseModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 hover:border-emerald-400 text-emerald-300 hover:text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-                title="Configurar Supabase, Chaves e Scripts SQL"
-              >
-                <Database className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="hidden sm:inline">Configurar Supabase</span>
-                <span className="sm:hidden">Supabase</span>
-                <span className={`w-2 h-2 rounded-full ${isSupabaseConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              </button>
-
               {/* Authenticated User Display */}
               {isLoggedIn ? (
                 isAdmin ? (
@@ -574,67 +561,48 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Supabase & Banco de Dados Section (Visible for all users) */}
-            <div className="p-3.5 bg-gray-950 rounded-2xl border border-emerald-900/50 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-bold text-white">Configurar Supabase</span>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${isSupabaseConnected ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30'}`}>
-                  {isSupabaseConnected ? 'Conectado' : 'Modo Local'}
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                Desbloqueie fotos para outros celulares ou sincronize dados em tempo real.
-              </p>
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenSupabaseModal();
-                  }}
-                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  <span>Configurar</span>
-                </button>
-                <button
-                  onClick={() => navigateTo('sql_schema')}
-                  className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Code className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Scripts SQL</span>
-                </button>
-              </div>
-            </div>
-
             {/* Technical Resources Section (STRICTLY ONLY FOR ADMIN) */}
             {isAdmin && (
               <div className="space-y-1.5 pt-2 border-t border-gray-800">
-                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider px-1">
-                  Recursos Dev & Deploy (Admin)
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider px-1 flex items-center justify-between">
+                  <span>Recursos Master & Banco (Admin)</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${isSupabaseConnected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                    {isSupabaseConnected ? 'Supabase Conectado' : 'Modo Local'}
+                  </span>
                 </span>
                 
                 <div className="grid grid-cols-2 gap-2">
+                  <button
+                    id="mobile-nav-supabase-admin"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenSupabaseModal();
+                    }}
+                    className="p-2.5 bg-gray-950 border border-emerald-900/60 rounded-xl text-left hover:bg-gray-850 transition-colors"
+                  >
+                    <Database className="w-4 h-4 text-emerald-400 mb-1" />
+                    <span className="text-xs font-bold text-white block">Configurar Supabase</span>
+                    <span className="text-[10px] text-gray-400 block">Chaves & Storage</span>
+                  </button>
+
                   <button
                     id="mobile-nav-sql"
                     onClick={() => navigateTo('sql_schema')}
                     className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors"
                   >
-                    <Database className="w-4 h-4 text-emerald-400 mb-1" />
+                    <Code className="w-4 h-4 text-blue-400 mb-1" />
                     <span className="text-xs font-bold text-white block">Schema SQL</span>
-                    <span className="text-[10px] text-gray-400 block">Supabase</span>
+                    <span className="text-[10px] text-gray-400 block">Scripts Banco</span>
                   </button>
 
                   <button
                     id="mobile-nav-deploy"
                     onClick={() => navigateTo('deploy_docs')}
-                    className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors"
+                    className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl text-left hover:bg-gray-850 transition-colors col-span-2"
                   >
                     <Cloud className="w-4 h-4 text-sky-400 mb-1" />
                     <span className="text-xs font-bold text-white block">Deploy Vercel</span>
-                    <span className="text-[10px] text-gray-400 block">Domínio</span>
+                    <span className="text-[10px] text-gray-400 block">Configurar Domínio Próprio</span>
                   </button>
                 </div>
               </div>

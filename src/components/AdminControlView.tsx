@@ -37,10 +37,24 @@ import {
   Share2,
   PhoneCall,
   Pencil,
-  Trash2
+  Trash2,
+  Key,
+  Link as LinkIcon,
+  ExternalLink,
+  Radio,
+  Code
 } from 'lucide-react';
 import { Profile, SystemSettings, UserRole, UserStatus, UserPlan } from '../types';
-import { SUPABASE_SQL_SCRIPT } from '../lib/sqlScripts';
+import { 
+  SUPABASE_SQL_SCRIPT, 
+  STORAGE_FIX_SQL_SCRIPT, 
+  GLOBAL_REALTIME_SQL_SCRIPT 
+} from '../lib/sqlScripts';
+import { 
+  getStoredSupabaseConfig, 
+  saveStoredSupabaseConfig, 
+  isSupabaseConfigured 
+} from '../lib/supabaseClient';
 import { ProfessionSelect } from './ProfessionSelect';
 import { getDisplayHost } from '../lib/profileUrlHelper';
 
@@ -73,6 +87,20 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
   const [copiedScript, setCopiedScript] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+
+  // Supabase Configuration in Admin Panel
+  const storedConfig = getStoredSupabaseConfig();
+  const [supabaseUrl, setSupabaseUrl] = useState(storedConfig.url);
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(storedConfig.anonKey);
+  const [supabaseSaved, setSupabaseSaved] = useState(false);
+  const [activeSqlSubTab, setActiveSqlSubTab] = useState<'storage' | 'realtime' | 'full' | 'keys'>('storage');
+
+  const handleSaveSupabaseKeys = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveStoredSupabaseConfig(supabaseUrl.trim(), supabaseAnonKey.trim());
+    setSupabaseSaved(true);
+    setTimeout(() => setSupabaseSaved(false), 3000);
+  };
 
   // Financial & Stats calculations
   const totalUsers = profiles.length;
@@ -351,12 +379,12 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
             onClick={() => setActiveTab('sql_rules')}
             className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'sql_rules'
-                ? 'bg-white text-gray-900 shadow-xs border border-gray-200'
+                ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Database className="w-3.5 h-3.5 text-emerald-600" />
-            <span>SQL Supabase</span>
+            <span>Configurar Supabase & Banco</span>
           </button>
         </div>
 
@@ -952,50 +980,289 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
           </div>
         )}
 
-        {/* TAB: SQL RULES */}
+        {/* TAB: SUPABASE & DATABASE CONFIGURATION (STRICTLY ADMIN ONLY) */}
         {activeTab === 'sql_rules' && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
             
-            {/* Troubleshooting Alert Box */}
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="text-xs text-emerald-950 space-y-1">
-                <span className="font-bold block text-emerald-900">
-                  Script Unificado &amp; Correção para "ERROR: 42P01: relation profiles does not exist"
-                </span>
-                <p className="text-emerald-800 leading-relaxed">
-                  Se você recebeu o erro <strong>ERROR: 42P01: relation "public.profiles" does not exist</strong>, isso significa que tentou executar comandos de alteração antes da criação inicial da tabela. O script completo abaixo foi estruturado para criar a tabela <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">profiles</code>, galeria <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">service_gallery</code>, avaliações, bucket de imagens e todas as políticas RLS na ordem exata.
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">
+                    Área Técnica Exclusiva do Administrador
+                  </span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    isSupabaseConfigured() ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'}`}></span>
+                    {isSupabaseConfigured() ? 'Supabase Conectado' : 'Modo Local / Demo'}
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Database className="w-5 h-5 text-emerald-600" />
+                  <span>Configuração Supabase, Storage & Scripts SQL</span>
+                </h2>
+                <p className="text-xs text-gray-500 max-w-2xl">
+                  Gerencie as credenciais da API do Supabase, execute o desbloqueio público do Storage para fotos dos técnicos e ative sincronização em tempo real. Usuários comuns e técnicos não têm acesso a esta área.
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://supabase.com/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Abrir Painel Supabase</span>
+                </a>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                  <Database className="w-4 h-4 text-emerald-600" />
-                  <span>Script SQL Completo (Tabelas + RLS + Storage + Monetização)</span>
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Copie e cole no <strong>SQL Editor</strong> do seu Supabase e clique em <strong>Run</strong>.
-                </p>
-              </div>
+            {/* Subtab Selector */}
+            <div className="flex flex-wrap gap-2 p-1.5 bg-gray-100 rounded-xl w-fit">
+              <button
+                type="button"
+                onClick={() => setActiveSqlSubTab('storage')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeSqlSubTab === 'storage'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-orange-600" />
+                <span>Desbloquear Fotos (Storage)</span>
+              </button>
 
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(ADMIN_SQL_RBAC);
-                  setCopiedSql(true);
-                  setTimeout(() => setCopiedSql(false), 2000);
-                }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                type="button"
+                onClick={() => setActiveSqlSubTab('keys')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeSqlSubTab === 'keys'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                {copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedSql ? 'Copiado!' : 'Copiar SQL Completo'}</span>
+                <Key className="w-3.5 h-3.5 text-amber-600" />
+                <span>Chaves de API Supabase</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveSqlSubTab('realtime')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeSqlSubTab === 'realtime'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5 text-blue-600" />
+                <span>Tempo Real (Realtime)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveSqlSubTab('full')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeSqlSubTab === 'full'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Code className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Script SQL Completo</span>
               </button>
             </div>
 
-            <pre className="p-4 bg-gray-900 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[420px]">
-              {ADMIN_SQL_RBAC}
-            </pre>
+            {/* SUBTAB 1: STORAGE DESBLOQUEIO */}
+            {activeSqlSubTab === 'storage' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-600" />
+                    <span className="text-xs font-bold text-orange-950 uppercase tracking-wide">
+                      Por que fotos não apareciam em outros celulares ou visitantes?
+                    </span>
+                  </div>
+                  <p className="text-xs text-orange-900 leading-relaxed">
+                    Por padrão de segurança, o Supabase bloqueia a visualização pública de arquivos carregados em buckets até que as políticas RLS permitam a leitura anônima (<code className="bg-orange-100 px-1 py-0.5 rounded font-mono font-bold">anon</code>). Executando o script abaixo uma única vez no Supabase SQL Editor, o bucket <code className="bg-orange-100 px-1 py-0.5 rounded font-mono font-bold">services-photos</code> é tornado 100% público e as fotos carregarão instantaneamente em qualquer celular, computador ou WhatsApp.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-900">Script de Desbloqueio Público do Storage</h3>
+                    <p className="text-[11px] text-gray-500">Copia o SQL que cria o bucket público e as políticas de leitura e gravação.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(STORAGE_FIX_SQL_SCRIPT);
+                      setCopiedSql(true);
+                      setTimeout(() => setCopiedSql(false), 2500);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0"
+                  >
+                    {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedSql ? 'Copiado para a Área de Transferência!' : 'Copiar Script Storage (1 Clique)'}</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute top-2.5 right-3 text-[10px] text-gray-400 font-mono">SQL Editor • Supabase</div>
+                  <pre className="p-4 bg-gray-900 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[360px] leading-relaxed">
+                    {STORAGE_FIX_SQL_SCRIPT}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* SUBTAB 2: API KEYS */}
+            {activeSqlSubTab === 'keys' && (
+              <div className="space-y-4 max-w-2xl">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <span className="text-xs font-bold text-emerald-950 block">Credenciais do Projeto Supabase</span>
+                  <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                    Você pode alterar a URL e a Anon Key do seu projeto Supabase diretamente aqui. As alterações são gravadas com segurança e passam a valer imediatamente para todo o sistema.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveSupabaseKeys} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Project URL (Supabase URL)
+                    </label>
+                    <input
+                      type="url"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://sua-instancia.supabase.co"
+                      required
+                      className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-0.5 block">
+                      Encontrado em: Supabase Dashboard &gt; Project Settings &gt; API &gt; Project URL
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Anon Public Key (chave anon pública)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={supabaseAnonKey}
+                      onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      required
+                      className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-0.5 block">
+                      Encontrado em: Supabase Dashboard &gt; Project Settings &gt; API &gt; Project API keys (anon / public)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Salvar Credenciais do Supabase</span>
+                    </button>
+                    {supabaseSaved && (
+                      <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-100 px-3 py-1.5 rounded-lg">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Configurações salvas e aplicadas!</span>
+                      </span>
+                    )}
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* SUBTAB 3: REALTIME */}
+            {activeSqlSubTab === 'realtime' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
+                  <span className="text-xs font-bold text-blue-950 block">Sincronização em Tempo Real Global</span>
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    Ativa a replicação em tempo real no PostgreSQL do Supabase para que qualquer novo serviço, alteração de dados ou nova foto publicada por técnicos apareça instantaneamente em todas as telas abertas sem precisar atualizar a página.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-900">Script de Ativação Realtime (Postgres Changes)</h3>
+                    <p className="text-[11px] text-gray-500">Adiciona as tabelas profiles e service_gallery à publicação supabase_realtime.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(GLOBAL_REALTIME_SQL_SCRIPT);
+                      setCopiedSql(true);
+                      setTimeout(() => setCopiedSql(false), 2500);
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0"
+                  >
+                    {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedSql ? 'Copiado!' : 'Copiar Script Realtime'}</span>
+                  </button>
+                </div>
+
+                <pre className="p-4 bg-gray-900 text-blue-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[320px] leading-relaxed">
+                  {GLOBAL_REALTIME_SQL_SCRIPT}
+                </pre>
+              </div>
+            )}
+
+            {/* SUBTAB 4: FULL SQL SCHEMA */}
+            {activeSqlSubTab === 'full' && (
+              <div className="space-y-4">
+                {/* Troubleshooting Alert Box */}
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-emerald-950 space-y-1">
+                    <span className="font-bold block text-emerald-900">
+                      Script Unificado &amp; Correção para "ERROR: 42P01: relation profiles does not exist"
+                    </span>
+                    <p className="text-emerald-800 leading-relaxed">
+                      Se você recebeu o erro <strong>ERROR: 42P01: relation "public.profiles" does not exist</strong>, isso significa que tentou executar comandos de alteração antes da criação inicial da tabela. O script completo abaixo foi estruturado para criar a tabela <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">profiles</code>, galeria <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">service_gallery</code>, avaliações, bucket de imagens e todas as políticas RLS na ordem exata.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <Database className="w-4 h-4 text-emerald-600" />
+                      <span>Script SQL Completo (Tabelas + RLS + Storage + Monetização)</span>
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Copie e cole no <strong>SQL Editor</strong> do seu Supabase e clique em <strong>Run</strong>.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(ADMIN_SQL_RBAC);
+                      setCopiedSql(true);
+                      setTimeout(() => setCopiedSql(false), 2000);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                  >
+                    {copiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedSql ? 'Copiado!' : 'Copiar SQL Completo'}</span>
+                  </button>
+                </div>
+
+                <pre className="p-4 bg-gray-900 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[420px]">
+                  {ADMIN_SQL_RBAC}
+                </pre>
+              </div>
+            )}
+
           </div>
         )}
 
