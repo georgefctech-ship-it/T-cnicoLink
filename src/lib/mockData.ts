@@ -61,7 +61,7 @@ export const INITIAL_PROFILES: Profile[] = [
     bio_short: 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade com nitrogênio e 1 ano de garantia.',
     avatar_url: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=400&q=80',
     cover_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80',
-    city_state: 'Sorocaba - SP',
+    city_state: 'Boituva - SP',
     years_experience: 9,
     accepts_pix: true,
     accepts_cards: true,
@@ -191,34 +191,55 @@ export const INITIAL_PROFILES: Profile[] = [
   }
 ];
 
-export const INITIAL_GALLERY: Record<string, ServicePhoto[]> = {};
+const JHONATAS_PHOTOS: ServicePhoto[] = [
+  {
+    id: 'e1a00000-0000-4000-8000-000000000011',
+    profile_id: 'e1a00000-0000-4000-8000-000000000001',
+    image_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80',
+    title: 'Instalação de Ar Split Inverter',
+    description: 'Instalação com teste de estanqueidade em nitrogênio, vácuo de 500 microns e isolamento térmico blindado.',
+    tag: 'Instalação',
+    created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+  },
+  {
+    id: 'e1a00000-0000-4000-8000-000000000012',
+    profile_id: 'e1a00000-0000-4000-8000-000000000001',
+    image_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
+    title: 'Manutenção Preventiva & Carga de Gás',
+    description: 'Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.',
+    tag: 'Manutenção',
+    created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+  },
+  {
+    id: 'e1a00000-0000-4000-8000-000000000013',
+    profile_id: 'e1a00000-0000-4000-8000-000000000001',
+    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    title: 'Higienização Química Completa',
+    description: 'Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.',
+    tag: 'Manutenção',
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+  },
+  {
+    id: 'e1a00000-0000-4000-8000-000000000014',
+    profile_id: 'e1a00000-0000-4000-8000-000000000001',
+    image_url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
+    title: 'Infraestrutura e Tubulação Embutida',
+    description: 'Passagem de tubulação de cobre e dreno embutido em alvenaria antes do acabamento em gesso.',
+    tag: 'Instalação',
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+  },
+];
+
+export const INITIAL_GALLERY: Record<string, ServicePhoto[]> = {
+  'prof-1': JHONATAS_PHOTOS,
+  'e1a00000-0000-4000-8000-000000000001': JHONATAS_PHOTOS,
+  'jhonatas-climatizacao': JHONATAS_PHOTOS,
+};
 
 export function isMockDemoPhoto(photo: { id?: string; image_url?: string; title?: string } | null | undefined): boolean {
-  if (!photo) return true;
-  const id = photo.id || '';
-  if (/^photo-(10|20|30|40|50)\d$/.test(id)) return true;
-  const url = photo.image_url || '';
-  const mockPatterns = [
-    'photo-1621905252507',
-    'photo-1581092335397',
-    'photo-1545259741',
-    'photo-1581092160607',
-    'photo-1591799264318',
-    'photo-1588508065123',
-    'photo-1511707171634',
-    'photo-1581092335878',
-    'photo-1633493763531',
-    'photo-1535141192574',
-    'photo-1578985545062',
-    'photo-1597740985671',
-    'photo-1517077304055',
-    'photo-1621905251189',
-    'photo-1558494949',
-    'photo-1504307651254',
-    'photo-1503387762',
-    'photo-1486006920555'
-  ];
-  return mockPatterns.some(pat => url.includes(pat));
+  if (!photo || !photo.image_url) return true;
+  // Do not filter out valid photos added by user or preset initial gallery
+  return false;
 }
 
 export const INITIAL_TESTIMONIALS: Record<string, Testimonial[]> = {

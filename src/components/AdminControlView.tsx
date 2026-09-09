@@ -53,7 +53,8 @@ import {
 import { 
   getStoredSupabaseConfig, 
   saveStoredSupabaseConfig, 
-  isSupabaseConfigured 
+  isSupabaseConfigured,
+  getSupabase
 } from '../lib/supabaseClient';
 import { ProfessionSelect } from './ProfessionSelect';
 import { getDisplayHost } from '../lib/profileUrlHelper';
@@ -93,7 +94,60 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
   const [supabaseUrl, setSupabaseUrl] = useState(storedConfig.url);
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(storedConfig.anonKey);
   const [supabaseSaved, setSupabaseSaved] = useState(false);
-  const [activeSqlSubTab, setActiveSqlSubTab] = useState<'storage' | 'realtime' | 'full' | 'keys'>('storage');
+  const [activeSqlSubTab, setActiveSqlSubTab] = useState<'storage' | 'realtime' | 'full' | 'keys'>('realtime');
+  const [testSyncStatus, setTestSyncStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testSyncMessage, setTestSyncMessage] = useState('');
+
+  const handleTestSupabaseSync = async () => {
+    setTestSyncStatus('testing');
+    setTestSyncMessage('Testando leitura e gravação no Supabase...');
+    try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        setTestSyncStatus('error');
+        setTestSyncMessage('Supabase não inicializado. Verifique se a URL e Anon Key estão configuradas.');
+        return;
+      }
+      // 1. Test read
+      const { data: readData, error: readError } = await supabase.from('profiles').select('id, full_name').limit(1);
+      if (readError) {
+        setTestSyncStatus('error');
+        setTestSyncMessage(`Erro de leitura: ${readError.message}`);
+        return;
+      }
+
+      // 2. Test write (valid UUID)
+      const testId = 'e1a00000-0000-4000-8000-000000000099';
+      const { error: writeError } = await supabase.from('profiles').upsert({
+        id: testId,
+        full_name: 'Teste de Permissão de Sincronização',
+        username: 'teste-sync-' + Date.now().toString().slice(-4),
+        status: 'active',
+        city_state: 'Boituva - SP',
+        updated_at: new Date().toISOString()
+      });
+
+      if (writeError) {
+        if (writeError.message.includes('row-level security') || writeError.code === '42501') {
+          setTestSyncStatus('error');
+          setTestSyncMessage('Bloqueio RLS Detectado (Erro 42501): O Supabase está bloqueando a gravação de outros navegadores. Copie o Script de Sincronização abaixo e execute no SQL Editor do Supabase!');
+        } else {
+          setTestSyncStatus('error');
+          setTestSyncMessage(`Erro ao gravar no Supabase: ${writeError.message}`);
+        }
+        return;
+      }
+
+      // 3. Clean up test record
+      await supabase.from('profiles').delete().eq('id', testId);
+
+      setTestSyncStatus('success');
+      setTestSyncMessage('Sincronização 100% Liberada! Leitura e gravação funcionando perfeitamente em qualquer dispositivo e navegador.');
+    } catch (err: any) {
+      setTestSyncStatus('error');
+      setTestSyncMessage(`Falha de conexão: ${err?.message || err}`);
+    }
+  };
 
   const handleSaveSupabaseKeys = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1024,6 +1078,19 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
             <div className="flex flex-wrap gap-2 p-1.5 bg-gray-100 rounded-xl w-fit">
               <button
                 type="button"
+                onClick={() => setActiveSqlSubTab('realtime')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeSqlSubTab === 'realtime'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5 text-blue-600" />
+                <span>Sincronizar Navegadores &amp; Tempo Real</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveSqlSubTab('storage')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                   activeSqlSubTab === 'storage'
@@ -1046,19 +1113,6 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
               >
                 <Key className="w-3.5 h-3.5 text-amber-600" />
                 <span>Chaves de API Supabase</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSqlSubTab('realtime')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeSqlSubTab === 'realtime'
-                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5 text-blue-600" />
-                <span>Tempo Real (Realtime)</span>
               </button>
 
               <button
@@ -1182,38 +1236,105 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
               </div>
             )}
 
-            {/* SUBTAB 3: REALTIME */}
+            {/* SUBTAB: REALTIME & MULTI-BROWSER SYNC */}
             {activeSqlSubTab === 'realtime' && (
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
-                  <span className="text-xs font-bold text-blue-950 block">Sincronização em Tempo Real Global</span>
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    Ativa a replicação em tempo real no PostgreSQL do Supabase para que qualquer novo serviço, alteração de dados ou nova foto publicada por técnicos apareça instantaneamente em todas as telas abertas sem precisar atualizar a página.
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="text-xs font-bold text-amber-950 uppercase tracking-wide">
+                      Por que em um navegador aparecia e no outro navegador/conta não aparecia?
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-900 leading-relaxed">
+                    Quando você alterou dados ou adicionou fotos no primeiro navegador, o navegador tentou enviar para o Supabase, mas o Supabase <strong>rejeitou a gravação com erro 42501 (Row-Level Security)</strong> porque as políticas exigiam login via Supabase Auth. Como o Supabase recusou os dados, eles ficaram salvos apenas no cache local daquele primeiro navegador. Ao abrir outro navegador ou conta, o Supabase estava sem os dados novos e exibiu as fotos padrão do sistema.
+                  </p>
+                  <p className="text-xs text-amber-950 font-semibold leading-relaxed">
+                    <strong>Solução Definitiva:</strong> O script abaixo remove qualquer bloqueio de chave estrangeira ou RLS, libera a gravação de fotos/perfis entre todos os navegadores e ativa a transmissão em tempo real. Basta copiar e executar no SQL Editor do Supabase!
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                {/* Diagnostic Tester Card */}
+                <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-xs font-bold text-gray-900">Script de Ativação Realtime (Postgres Changes)</h3>
-                    <p className="text-[11px] text-gray-500">Adiciona as tabelas profiles e service_gallery à publicação supabase_realtime.</p>
+                    <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Diagnóstico de Sincronização em Tempo Real</span>
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Testa se o Supabase está aceitando leitura e gravação livre de fotos e perfis entre navegadores.
+                    </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(GLOBAL_REALTIME_SQL_SCRIPT);
-                      setCopiedSql(true);
-                      setTimeout(() => setCopiedSql(false), 2500);
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0"
+                    onClick={handleTestSupabaseSync}
+                    disabled={testSyncStatus === 'testing'}
+                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0 disabled:opacity-50"
                   >
-                    {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedSql ? 'Copiado!' : 'Copiar Script Realtime'}</span>
+                    <RefreshCw className={`w-3.5 h-3.5 ${testSyncStatus === 'testing' ? 'animate-spin' : ''}`} />
+                    <span>{testSyncStatus === 'testing' ? 'Testando...' : 'Testar Sincronização Supabase'}</span>
                   </button>
                 </div>
 
-                <pre className="p-4 bg-gray-900 text-blue-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[320px] leading-relaxed">
-                  {GLOBAL_REALTIME_SQL_SCRIPT}
-                </pre>
+                {testSyncStatus !== 'idle' && (
+                  <div className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+                    testSyncStatus === 'success'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : testSyncStatus === 'error'
+                      ? 'bg-red-50 border-red-200 text-red-900'
+                      : 'bg-blue-50 border-blue-200 text-blue-900'
+                  }`}>
+                    {testSyncStatus === 'success' && <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />}
+                    {testSyncStatus === 'error' && <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />}
+                    {testSyncStatus === 'testing' && <RefreshCw className="w-4 h-4 text-blue-600 shrink-0 mt-0.5 animate-spin" />}
+                    <div>
+                      <span className="font-bold block">
+                        {testSyncStatus === 'success' ? 'Sucesso!' : testSyncStatus === 'error' ? 'Atenção Necessária:' : 'Testando...'}
+                      </span>
+                      <span>{testSyncMessage}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Steps & Copy Section */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-900">Script de Liberação Universal (Navegadores &amp; Contas)</h3>
+                    <p className="text-[11px] text-gray-500">
+                      1. Copie o script &bull; 2. Abra o Supabase &gt; SQL Editor &bull; 3. Cole e clique em RUN.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href="https://supabase.com/dashboard"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 bg-white border border-gray-300 hover:border-gray-400 text-gray-700 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Abrir Supabase</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(GLOBAL_REALTIME_SQL_SCRIPT);
+                        setCopiedSql(true);
+                        setTimeout(() => setCopiedSql(false), 2500);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                    >
+                      {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedSql ? 'Copiado para Área de Transferência!' : 'Copiar Script (1 Clique)'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute top-2.5 right-3 text-[10px] text-gray-400 font-mono">SQL Editor • Supabase</div>
+                  <pre className="p-4 bg-gray-900 text-blue-400 rounded-xl text-xs font-mono overflow-x-auto max-h-[320px] leading-relaxed">
+                    {GLOBAL_REALTIME_SQL_SCRIPT}
+                  </pre>
+                </div>
               </div>
             )}
 

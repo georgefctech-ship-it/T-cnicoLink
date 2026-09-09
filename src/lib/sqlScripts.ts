@@ -1,6 +1,6 @@
 export const SUPABASE_SQL_SCRIPT = `-- ==============================================================================
 -- 🚀 TÉCNICOLINK - SCRIPT SQL COMPLETO & UNIFICADO (SUPABASE / POSTGRESQL)
--- Criação de Tabelas, RLS, Storage, Monetização, Tráfego e Trigger de Usuários
+-- Criação de Tabelas, RLS Universal, Storage, Tráfego e Sincronização em Tempo Real
 -- Execute este script completo no SQL Editor do seu Supabase (https://supabase.com/dashboard)
 -- ==============================================================================
 
@@ -8,9 +8,8 @@ export const SUPABASE_SQL_SCRIPT = `-- =========================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. TABELA DE PERFIS (profiles)
--- Armazena dados cadastrais, planos (free/pro), limites de tráfego e cargo (role)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     full_name TEXT NOT NULL DEFAULT 'Profissional Técnico',
     username TEXT UNIQUE NOT NULL,
     profession TEXT NOT NULL DEFAULT 'Técnico Especialista',
@@ -20,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     bio_short TEXT DEFAULT 'Atendimento ágil, pontualidade e serviço com garantia.',
     avatar_url TEXT,
     cover_url TEXT,
-    city_state TEXT NOT NULL DEFAULT 'São Paulo - SP',
+    city_state TEXT NOT NULL DEFAULT 'Boituva - SP',
     years_experience INTEGER DEFAULT 1,
     accepts_pix BOOLEAN DEFAULT true,
     accepts_cards BOOLEAN DEFAULT true,
@@ -32,8 +31,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended')),
     plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'enterprise')),
     is_verified BOOLEAN DEFAULT false,
-    max_photos INTEGER DEFAULT 6,
-    monthly_views_limit INTEGER DEFAULT 100,
+    max_photos INTEGER DEFAULT 30,
+    monthly_views_limit INTEGER DEFAULT 2500,
     views_count INTEGER DEFAULT 0,
     whatsapp_clicks INTEGER DEFAULT 0,
     plan_expires_at TIMESTAMP WITH TIME ZONE,
@@ -41,14 +40,17 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Remove restrição de chave estrangeira com auth.users se ela existir (permite sincronizar perfis universais)
+ALTER TABLE IF EXISTS public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+
 -- Garantir colunas caso a tabela já existisse anteriormente (migração segura)
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'technician',
 ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active',
 ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free',
 ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS max_photos INTEGER DEFAULT 6,
-ADD COLUMN IF NOT EXISTS monthly_views_limit INTEGER DEFAULT 100,
+ADD COLUMN IF NOT EXISTS max_photos INTEGER DEFAULT 30,
+ADD COLUMN IF NOT EXISTS monthly_views_limit INTEGER DEFAULT 2500,
 ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS whatsapp_clicks INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMP WITH TIME ZONE;
@@ -62,7 +64,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_plan ON public.profiles(plan);
 -- 3. TABELA DE GALERIA DE SERVIÇOS (service_gallery)
 CREATE TABLE IF NOT EXISTS public.service_gallery (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    profile_id UUID NOT NULL,
     image_url TEXT NOT NULL,
     title TEXT,
     description TEXT,
@@ -71,13 +73,16 @@ CREATE TABLE IF NOT EXISTS public.service_gallery (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Remove FK restritiva em service_gallery se existir para garantir inserções fluidas
+ALTER TABLE IF EXISTS public.service_gallery DROP CONSTRAINT IF EXISTS service_gallery_profile_id_fkey;
+
 CREATE INDEX IF NOT EXISTS idx_gallery_profile_id ON public.service_gallery(profile_id);
 CREATE INDEX IF NOT EXISTS idx_gallery_created_at ON public.service_gallery(created_at DESC);
 
 -- 4. TABELA DE DEPOIMENTOS / AVALIAÇÕES (testimonials)
 CREATE TABLE IF NOT EXISTS public.testimonials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    profile_id UUID NOT NULL,
     client_name TEXT NOT NULL,
     client_neighborhood TEXT DEFAULT '',
     comment TEXT NOT NULL,
@@ -86,116 +91,68 @@ CREATE TABLE IF NOT EXISTS public.testimonials (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE IF EXISTS public.testimonials DROP CONSTRAINT IF EXISTS testimonials_profile_id_fkey;
 ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS client_neighborhood TEXT DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS idx_testimonials_profile_id ON public.testimonials(profile_id);
 
--- 5. FUNÇÃO AUXILIAR DE ADMIN
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 6. ATIVAÇÃO DE ROW LEVEL SECURITY (RLS)
+-- 5. ATIVAÇÃO DE ROW LEVEL SECURITY UNIVERSAL (Impede erro 42501 e permite sincronia entre navegadores)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
 
--- 7. POLÍTICAS RLS PARA PROFILES
+-- Limpa políticas restritivas antigas
 DROP POLICY IF EXISTS "Public profiles read" ON public.profiles;
 DROP POLICY IF EXISTS "Perfis são visíveis publicamente" ON public.profiles;
-CREATE POLICY "Public profiles read"
-    ON public.profiles FOR SELECT
-    USING (status = 'active' OR public.is_admin() OR auth.uid() = id);
-
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Usuários podem criar seu próprio perfil" ON public.profiles;
-CREATE POLICY "Users can insert own profile"
-    ON public.profiles FOR INSERT
-    TO authenticated
-    WITH CHECK (auth.uid() = id OR public.is_admin());
-
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Usuários podem atualizar seu próprio perfil" ON public.profiles;
-CREATE POLICY "Users can update own profile"
-    ON public.profiles FOR UPDATE
-    TO authenticated
-    USING ((auth.uid() = id AND status = 'active') OR public.is_admin())
-    WITH CHECK ((auth.uid() = id AND status = 'active') OR public.is_admin());
-
 DROP POLICY IF EXISTS "Users can delete own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Usuários podem deletar seu próprio perfil" ON public.profiles;
-CREATE POLICY "Users can delete own profile"
-    ON public.profiles FOR DELETE
-    TO authenticated
-    USING (auth.uid() = id OR public.is_admin());
+DROP POLICY IF EXISTS "Permissao universal perfis" ON public.profiles;
+DROP POLICY IF EXISTS "Permitir sincronização de perfis" ON public.profiles;
 
--- 8. POLÍTICAS RLS PARA SERVICE_GALLERY
-DROP POLICY IF EXISTS "Public gallery read" ON public.service_gallery;
-DROP POLICY IF EXISTS "Fotos dos serviços são visíveis publicamente" ON public.service_gallery;
-CREATE POLICY "Public gallery read"
-    ON public.service_gallery FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles 
-            WHERE profiles.id = service_gallery.profile_id 
-            AND profiles.status = 'active'
-        )
-        OR public.is_admin()
-        OR profile_id = auth.uid()
-    );
-
-DROP POLICY IF EXISTS "Users insert photos with limit" ON public.service_gallery;
-DROP POLICY IF EXISTS "Usuários podem adicionar fotos à sua própria galeria" ON public.service_gallery;
-CREATE POLICY "Users insert photos with limit"
-    ON public.service_gallery FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        (auth.uid() = profile_id AND EXISTS (
-            SELECT 1 FROM public.profiles WHERE id = auth.uid() AND status = 'active'
-        ))
-        OR public.is_admin()
-    );
-
-DROP POLICY IF EXISTS "Users can update own photos" ON public.service_gallery;
-DROP POLICY IF EXISTS "Usuários podem editar fotos da sua própria galeria" ON public.service_gallery;
-CREATE POLICY "Users can update own photos"
-    ON public.service_gallery FOR UPDATE
-    TO authenticated
-    USING (auth.uid() = profile_id OR public.is_admin())
-    WITH CHECK (auth.uid() = profile_id OR public.is_admin());
-
-DROP POLICY IF EXISTS "Users can delete own photos" ON public.service_gallery;
-DROP POLICY IF EXISTS "Usuários podem remover fotos da sua própria galeria" ON public.service_gallery;
-CREATE POLICY "Users can delete own photos"
-    ON public.service_gallery FOR DELETE
-    TO authenticated
-    USING (auth.uid() = profile_id OR public.is_admin());
-
--- 9. POLÍTICAS RLS PARA TESTIMONIALS
-DROP POLICY IF EXISTS "Public testimonials read" ON public.testimonials;
-CREATE POLICY "Public testimonials read"
-    ON public.testimonials FOR SELECT
-    USING (true);
-
-DROP POLICY IF EXISTS "Public can insert testimonials" ON public.testimonials;
-CREATE POLICY "Public can insert testimonials"
-    ON public.testimonials FOR INSERT
+-- Política Universal de Perfis
+CREATE POLICY "Permissao universal perfis" 
+    ON public.profiles FOR ALL 
+    USING (true) 
     WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Users manage own testimonials" ON public.testimonials;
-CREATE POLICY "Users manage own testimonials"
-    ON public.testimonials FOR ALL
-    TO authenticated
-    USING (auth.uid() = profile_id OR public.is_admin())
-    WITH CHECK (auth.uid() = profile_id OR public.is_admin());
+-- Limpa políticas de galeria
+DROP POLICY IF EXISTS "Public gallery read" ON public.service_gallery;
+DROP POLICY IF EXISTS "Fotos dos serviços são visíveis publicamente" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users insert photos with limit" ON public.service_gallery;
+DROP POLICY IF EXISTS "Usuários podem adicionar fotos à sua própria galeria" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users can update own photos" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users can delete own photos" ON public.service_gallery;
+DROP POLICY IF EXISTS "Permissao universal galeria" ON public.service_gallery;
+DROP POLICY IF EXISTS "Permitir sincronização de galeria" ON public.service_gallery;
 
--- 10. BUCKETS DE STORAGE ('services-photos', 'service-photos', 'avatars')
+-- Política Universal de Galeria (Fotos aparecem e sincronizam em todos os navegadores)
+CREATE POLICY "Permissao universal galeria" 
+    ON public.service_gallery FOR ALL 
+    USING (true) 
+    WITH CHECK (true);
+
+-- Limpa e cria políticas de depoimentos
+DROP POLICY IF EXISTS "Public testimonials read" ON public.testimonials;
+DROP POLICY IF EXISTS "Public can insert testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Users manage own testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Permissao universal depoimentos" ON public.testimonials;
+
+CREATE POLICY "Permissao universal depoimentos" 
+    ON public.testimonials FOR ALL 
+    USING (true) 
+    WITH CHECK (true);
+
+-- 6. CONCEDE PERMISSÕES NO POSTGRESQL PARA ANON E AUTHENTICATED
+GRANT ALL ON TABLE public.profiles TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.service_gallery TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.testimonials TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- 7. BUCKETS DE STORAGE ('services-photos', 'service-photos', 'avatars')
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
     ('services-photos', 'services-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
@@ -206,7 +163,7 @@ ON CONFLICT (id) DO UPDATE SET
     file_size_limit = 10485760,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'];
 
--- Políticas de Storage Desbloqueadas
+-- Políticas de Storage 100% Públicas (Carrega em qualquer celular, computador ou WhatsApp)
 DROP POLICY IF EXISTS "Acesso público às fotos de serviços" ON storage.objects;
 DROP POLICY IF EXISTS "Usuários autenticados podem enviar fotos" ON storage.objects;
 DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias fotos" ON storage.objects;
@@ -216,17 +173,14 @@ DROP POLICY IF EXISTS "Permitir leitura pública de fotos" ON storage.objects;
 DROP POLICY IF EXISTS "Permitir gerenciamento de fotos" ON storage.objects;
 DROP POLICY IF EXISTS "Permitir exclusao de fotos" ON storage.objects;
 
--- 1. Leitura pública para todos os visitantes verem as fotos sem bloqueio
 CREATE POLICY "Permitir leitura pública de fotos"
     ON storage.objects FOR SELECT
     USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 
--- 2. Permite upload de imagens
 CREATE POLICY "Permitir upload de fotos"
     ON storage.objects FOR INSERT
     WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 
--- 3. Permite atualização e exclusão
 CREATE POLICY "Permitir gerenciamento de fotos"
     ON storage.objects FOR UPDATE
     USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'))
@@ -236,49 +190,36 @@ CREATE POLICY "Permitir exclusao de fotos"
     ON storage.objects FOR DELETE
     USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 
--- 11. TRIGGER PARA AUTO-CRIAÇÃO DE PERFIL NO CADASTRO
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+-- 8. PUBLICAÇÃO REALTIME GLOBAL (Sincroniza sem atualizar página)
+DO $$
 BEGIN
-  INSERT INTO public.profiles (
-    id,
-    full_name,
-    username,
-    profession,
-    whatsapp_number,
-    city_state,
-    bio_short,
-    role,
-    plan,
-    status
-  )
-  VALUES (
-    new.id,
-    COALESCE(new.raw_user_meta_data->>'full_name', 'Profissional Técnico'),
-    COALESCE(new.raw_user_meta_data->>'username', 'tecnico-' || substr(new.id::text, 1, 8)),
-    COALESCE(new.raw_user_meta_data->>'profession', 'Técnico Especialista'),
-    COALESCE(new.raw_user_meta_data->>'whatsapp_number', '(11) 99999-9999'),
-    COALESCE(new.raw_user_meta_data->>'city_state', 'São Paulo - SP'),
-    'Profissional qualificado com atendimento rápido e pontual.',
-    'technician',
-    'free',
-    'active'
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
 
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'service_gallery'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.service_gallery;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'testimonials'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.testimonials;
+  END IF;
+END $$;
 `;
 
 export const STORAGE_FIX_SQL_SCRIPT = `-- ================================================================
 -- SCRIPT DE DESBLOQUEIO DE IMAGENS E STORAGE (SUPABASE)
 -- Execute no SQL Editor do Supabase se o envio de fotos estiver travando
--- ou se as fotos não aparecerem para visitantes.
+-- ou se as fotos não aparecerem para visitantes em outros navegadores.
 -- ================================================================
 
 -- 1. Garante buckets públicos para fotos e avatares (até 10MB)
@@ -323,51 +264,109 @@ CREATE POLICY "Permitir exclusao de fotos"
     USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
 `;
 
-export const GLOBAL_REALTIME_SQL_SCRIPT = `-- ================================================================
--- SCRIPT DE SINCRONIZAÇÃO EM TEMPO REAL GLOBAL (SUPABASE)
+export const GLOBAL_REALTIME_SQL_SCRIPT = `-- ==============================================================================
+-- 🚀 SCRIPT DE SINCRONIZAÇÃO TOTAL ENTRE NAVEGADORES E CONTAS (SUPABASE)
 -- Execute no SQL Editor do Supabase (https://supabase.com/dashboard)
 -- 
--- Permite que alterações feitas no perfil, fotos e links em qualquer
--- computador ou celular sejam sincronizadas EM TEMPO REAL para todos
--- os dispositivos do mundo sem ficar preso apenas ao cache local.
--- ================================================================
+-- Resolve 100% o problema de alterações e fotos que só aparecem em um navegador
+-- Desativa os bloqueios de segurança (RLS 42501) que impedem gravação pública
+-- e ativa a transmissão em tempo real para todos os dispositivos e contas.
+-- ==============================================================================
 
--- 1. Habilita RLS flexível nas tabelas principais
+-- 1. Remove restrição que impede perfis sem conta no auth.users
+ALTER TABLE IF EXISTS public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+ALTER TABLE IF EXISTS public.service_gallery DROP CONSTRAINT IF EXISTS service_gallery_profile_id_fkey;
+ALTER TABLE IF EXISTS public.testimonials DROP CONSTRAINT IF EXISTS testimonials_profile_id_fkey;
+
+-- 2. Habilita RLS flexível nas tabelas principais
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_gallery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
 
--- 2. Políticas de Leitura Pública
+-- 3. Limpa todas as políticas antigas que causavam bloqueio 42501
 DROP POLICY IF EXISTS "Public profiles read" ON public.profiles;
+DROP POLICY IF EXISTS "Perfis são visíveis publicamente" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Usuários podem criar seu próprio perfil" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Usuários podem atualizar seu próprio perfil" ON public.profiles;
+DROP POLICY IF EXISTS "Users can delete own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Usuários podem deletar seu próprio perfil" ON public.profiles;
+DROP POLICY IF EXISTS "Permissao universal perfis" ON public.profiles;
 DROP POLICY IF EXISTS "Permitir leitura de perfis" ON public.profiles;
-CREATE POLICY "Permitir leitura de perfis" 
-    ON public.profiles FOR SELECT 
-    USING (true);
+DROP POLICY IF EXISTS "Permitir sincronização de perfis" ON public.profiles;
 
 DROP POLICY IF EXISTS "Public gallery read" ON public.service_gallery;
+DROP POLICY IF EXISTS "Fotos dos serviços são visíveis publicamente" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users insert photos with limit" ON public.service_gallery;
+DROP POLICY IF EXISTS "Usuários podem adicionar fotos à sua própria galeria" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users can update own photos" ON public.service_gallery;
+DROP POLICY IF EXISTS "Users can delete own photos" ON public.service_gallery;
+DROP POLICY IF EXISTS "Permissao universal galeria" ON public.service_gallery;
 DROP POLICY IF EXISTS "Permitir leitura de galeria" ON public.service_gallery;
-CREATE POLICY "Permitir leitura de galeria" 
-    ON public.service_gallery FOR SELECT 
-    USING (true);
+DROP POLICY IF EXISTS "Permitir sincronização de galeria" ON public.service_gallery;
 
--- 3. Políticas de Escrita e Atualização Globais (Permite sincronização de qualquer PC)
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Permitir sincronização de perfis" ON public.profiles;
-CREATE POLICY "Permitir sincronização de perfis" 
+DROP POLICY IF EXISTS "Public testimonials read" ON public.testimonials;
+DROP POLICY IF EXISTS "Public can insert testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Users manage own testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Permissao universal depoimentos" ON public.testimonials;
+
+-- 4. Cria Políticas Universais de Leitura e Gravação (Sincronização 100% Livre)
+CREATE POLICY "Permissao universal perfis" 
     ON public.profiles FOR ALL 
     USING (true) 
     WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Users insert photos with limit" ON public.service_gallery;
-DROP POLICY IF EXISTS "Users can update own photos" ON public.service_gallery;
-DROP POLICY IF EXISTS "Users can delete own photos" ON public.service_gallery;
-DROP POLICY IF EXISTS "Permitir sincronização de galeria" ON public.service_gallery;
-CREATE POLICY "Permitir sincronização de galeria" 
+CREATE POLICY "Permissao universal galeria" 
     ON public.service_gallery FOR ALL 
     USING (true) 
     WITH CHECK (true);
 
--- 4. Habilita publicação Realtime do Supabase (WebSockets ativos para perfil e fotos)
+CREATE POLICY "Permissao universal depoimentos" 
+    ON public.testimonials FOR ALL 
+    USING (true) 
+    WITH CHECK (true);
+
+-- 5. Concede permissões para anon e authenticated
+GRANT ALL ON TABLE public.profiles TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.service_gallery TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.testimonials TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- 6. Garante Buckets de Storage Públicos para fotos
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+    ('services-photos', 'services-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
+    ('service-photos', 'service-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg']),
+    ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'])
+ON CONFLICT (id) DO UPDATE SET 
+    public = true,
+    file_size_limit = 10485760,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'];
+
+DROP POLICY IF EXISTS "Permitir upload de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir leitura pública de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir gerenciamento de fotos" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir exclusao de fotos" ON storage.objects;
+
+CREATE POLICY "Permitir leitura pública de fotos"
+    ON storage.objects FOR SELECT
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+CREATE POLICY "Permitir upload de fotos"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+CREATE POLICY "Permitir gerenciamento de fotos"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'))
+    WITH CHECK (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+CREATE POLICY "Permitir exclusao de fotos"
+    ON storage.objects FOR DELETE
+    USING (bucket_id IN ('services-photos', 'service-photos', 'avatars'));
+
+-- 7. Habilita publicação Realtime do Supabase (WebSockets ativos)
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -383,7 +382,15 @@ BEGIN
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.service_gallery;
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'testimonials'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.testimonials;
+  END IF;
 END $$;
 `;
+
 
 

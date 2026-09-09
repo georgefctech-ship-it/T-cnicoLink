@@ -51,7 +51,8 @@ export async function fetchCloudProfiles(): Promise<Profile[]> {
   // 3. Fetch from Server Persistence (/api/profiles)
   try {
     const res = await fetch('/api/profiles');
-    if (res.ok) {
+    const contentType = res.headers.get('content-type');
+    if (res.ok && contentType && contentType.includes('application/json')) {
       const data = await res.json();
       if (Array.isArray(data.profiles)) {
         for (const p of data.profiles) {
@@ -117,7 +118,8 @@ export async function fetchCloudGallery(profileId: string): Promise<ServicePhoto
   // 2. Read from Server API
   try {
     const res = await fetch(`/api/gallery?profile_id=${encodeURIComponent(profileId)}`);
-    if (res.ok) {
+    const contentType = res.headers.get('content-type');
+    if (res.ok && contentType && contentType.includes('application/json')) {
       const data = await res.json();
       if (Array.isArray(data.photos)) {
         for (const ph of data.photos) {
@@ -137,7 +139,7 @@ export async function fetchCloudGallery(profileId: string): Promise<ServicePhoto
       const { data, error } = await supabase
         .from('service_gallery')
         .select('*')
-        .or(`profile_id.eq.${validUuid},profile_id.eq.${profileId}`)
+        .eq('profile_id', validUuid)
         .order('created_at', { ascending: false });
 
       if (!error && Array.isArray(data)) {
@@ -306,7 +308,7 @@ export async function deleteCloudPhoto(profileId: string, photoId: string): Prom
   if (supabase) {
     try {
       const validPhotoId = toValidUuid(photoId);
-      await supabase.from('service_gallery').delete().or(`id.eq.${validPhotoId},id.eq.${photoId}`);
+      await supabase.from('service_gallery').delete().eq('id', validPhotoId);
     } catch (err) {
       console.warn('[CloudSync] Supabase gallery delete exception:', err);
     }

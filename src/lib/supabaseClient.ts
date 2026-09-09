@@ -280,22 +280,24 @@ export function getLocalGallery(profileId: string): ServicePhoto[] {
     const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
     if (raw) {
       const all: Record<string, ServicePhoto[]> = JSON.parse(raw);
-      if (all[profileId]) {
-        // Filter out all demonstration photos, leaving ONLY real photos added by administrator/user
-        const realPhotos = all[profileId].filter(p => !isMockDemoPhoto(p));
-        // Clean up stored gallery if mock photos existed
-        if (realPhotos.length !== all[profileId].length) {
-          all[profileId] = realPhotos;
-          localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
-        }
-        return realPhotos;
+      const list = all[profileId] || 
+        (profileId === 'prof-1' || profileId === 'e1a00000-0000-4000-8000-000000000001' || profileId === 'jhonatas-climatizacao' 
+          ? (all['prof-1'] || all['e1a00000-0000-4000-8000-000000000001'] || all['jhonatas-climatizacao']) 
+          : undefined);
+
+      if (list && list.length > 0) {
+        return list.filter(p => !isMockDemoPhoto(p));
       }
     }
   } catch (e) {
     console.error(e);
   }
-  // Return empty list if no admin-added photos exist
-  return [];
+  
+  // Return INITIAL_GALLERY if available
+  return INITIAL_GALLERY[profileId] || 
+    (profileId === 'prof-1' || profileId === 'e1a00000-0000-4000-8000-000000000001' || profileId === 'jhonatas-climatizacao'
+      ? INITIAL_GALLERY['prof-1'] || []
+      : []);
 }
 
 export function saveLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
@@ -305,9 +307,15 @@ export function saveLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
     if (!all[photo.profile_id]) {
       all[photo.profile_id] = [];
     }
-    // Clean up any demo photos
-    all[photo.profile_id] = all[photo.profile_id].filter(p => !isMockDemoPhoto(p));
-    all[photo.profile_id] = [photo, ...all[photo.profile_id]];
+    all[photo.profile_id] = [photo, ...all[photo.profile_id].filter(p => p.id !== photo.id)];
+    
+    // Also mirror to known UUID or ID alias
+    if (photo.profile_id === 'prof-1') {
+      all['e1a00000-0000-4000-8000-000000000001'] = all[photo.profile_id];
+    } else if (photo.profile_id === 'e1a00000-0000-4000-8000-000000000001') {
+      all['prof-1'] = all[photo.profile_id];
+    }
+
     localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(all));
   } catch (e) {
     console.error(e);
