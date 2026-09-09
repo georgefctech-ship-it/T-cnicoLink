@@ -30,12 +30,15 @@ import {
   Link as LinkIcon,
   Pencil,
   Edit2,
-  X
+  X,
+  Database,
+  Code
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import QRCode from 'qrcode';
 import { Profile, ServicePhoto, AppView, SystemSettings } from '../types';
 import { getSupabase } from '../lib/supabaseClient';
+import { STORAGE_FIX_SQL_SCRIPT } from '../lib/sqlScripts';
 import { 
   getCleanShareUrl, 
   getQrCodeScanUrl, 
@@ -89,6 +92,13 @@ export const PainelView: React.FC<PainelViewProps> = ({
   const [newPhotoTitle, setNewPhotoTitle] = useState('');
   const [newPhotoDesc, setNewPhotoDesc] = useState('');
   const [newPhotoTag, setNewPhotoTag] = useState<'Instalação' | 'Antes e Depois' | 'Manutenção' | 'Acabamento'>('Instalação');
+  const [copiedStorageScript, setCopiedStorageScript] = useState(false);
+
+  function handleCopyStorageScript() {
+    navigator.clipboard.writeText(STORAGE_FIX_SQL_SCRIPT);
+    setCopiedStorageScript(true);
+    setTimeout(() => setCopiedStorageScript(false), 3000);
+  }
 
   // Photo Editing & Deleting states
   const [editingPhoto, setEditingPhoto] = useState<ServicePhoto | null>(null);
@@ -774,6 +784,43 @@ export const PainelView: React.FC<PainelViewProps> = ({
               <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full font-bold">
                 {gallery.length} fotos
               </span>
+            </div>
+
+            {/* Storage Permission Helper Banner */}
+            <div className="mb-4 p-3.5 bg-blue-50/90 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 border border-blue-200 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div className="text-xs text-blue-900 leading-tight">
+                  <span className="font-bold block text-blue-950">Fotos não aparecem em outros celulares ou computadores?</span>
+                  <p className="text-[11px] text-blue-700 mt-0.5">
+                    O Supabase Storage precisa do script de desbloqueio público para liberar as fotos para visitantes externos.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyStorageScript}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs ${
+                    copiedStorageScript
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  }`}
+                >
+                  {copiedStorageScript ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedStorageScript ? 'Script Copiado!' : 'Copiar Script Storage'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('sql_schema')}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors flex items-center gap-1"
+                >
+                  <Code className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Ver Scripts</span>
+                </button>
+              </div>
             </div>
 
             {/* Upload Area */}

@@ -936,6 +936,7 @@ export default function App() {
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
         onConfigSaved={() => checkSupabaseStatus()}
+        onNavigateToSql={() => navigateTo('sql_schema')}
       />
 
     </div>
