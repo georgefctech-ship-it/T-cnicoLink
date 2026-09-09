@@ -129,7 +129,7 @@ export default async function PublicProfilePage({ params }: Props) {
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-2xl relative">
           <div className="flex items-start gap-4">
             <img
-              src={profile.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
+              src={profile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
               alt={profile.full_name}
               className="w-24 h-24 rounded-2xl object-cover border-4 border-zinc-900 shadow-md ring-2 ring-amber-500/50"
             />

@@ -507,7 +507,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
                 <div className="flex flex-col items-center gap-1.5 shrink-0">
                   <div className="relative group shrink-0">
                     <img
-                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
+                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
                       alt="Foto do perfil"
                       className="w-20 h-20 rounded-xl object-cover ring-2 ring-orange-500/50 shadow-sm bg-gray-100"
                     />
@@ -1230,7 +1230,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
                   {/* Profile Info */}
                   <div className="px-4 -mt-10 relative z-10 text-center mb-4">
                     <img
-                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
+                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
                       alt="Avatar"
                       className="w-20 h-20 bg-white rounded-full border-4 border-white shadow-md mx-auto object-cover"
                     />

@@ -15,7 +15,7 @@
       "whatsapp_number": "(15) 98819-3561",
       "phone_number": "(15) 98819-3561",
       "bio_short": "Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade com nitrogênio e 1 ano de garantia.",
-      "avatar_url": "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=400&q=80",
+      "avatar_url": "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80",
       "cover_url": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80",
       "city_state": "Boituva - SP",
       "years_experience": 9,
@@ -31,8 +31,8 @@
       "max_photos": 30,
       "views_count": 780,
       "whatsapp_clicks": 194,
-      "updated_at": "2026-09-09T11:40:42.579Z",
-      "created_at": "2026-08-09T19:10:40.414Z"
+      "updated_at": "2026-09-09T12:30:15.277Z",
+      "created_at": "2026-08-10T12:30:14.746Z"
     },
     {
       "id": "prof-admin",
@@ -49,7 +49,7 @@
       "whatsapp_number": "(15) 99999-8888",
       "phone_number": "(15) 99999-8888",
       "bio_short": "Conta de Administrador Master do TécnicoLink. Controle total sobre perfis, limites de planos, moderação de fotos e políticas de segurança.",
-      "avatar_url": "https://jgdirmbxhdqobbzagphn.supabase.co/storage/v1/object/public/services-photos/George_fullstack_dev.jpg",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
       "cover_url": "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80",
       "city_state": "Boituva - SP",
       "years_experience": 10,
@@ -65,8 +65,8 @@
       "max_photos": 100,
       "views_count": 1420,
       "whatsapp_clicks": 340,
-      "created_at": "2026-06-11T11:40:42.119Z",
-      "updated_at": "2026-09-09T11:40:42.576Z"
+      "created_at": "2026-06-11T12:30:14.746Z",
+      "updated_at": "2026-09-09T12:30:15.256Z"
     },
     {
       "id": "prof-2",
@@ -99,8 +99,8 @@
       "max_photos": 30,
       "views_count": 615,
       "whatsapp_clicks": 162,
-      "created_at": "2026-08-14T19:10:40.414Z",
-      "updated_at": "2026-09-09T11:40:42.589Z"
+      "created_at": "2026-08-15T12:30:14.746Z",
+      "updated_at": "2026-09-09T12:30:15.310Z"
     },
     {
       "id": "prof-3",
@@ -133,8 +133,8 @@
       "max_photos": 30,
       "views_count": 530,
       "whatsapp_clicks": 128,
-      "created_at": "2026-07-25T19:10:40.414Z",
-      "updated_at": "2026-09-09T11:40:42.588Z"
+      "created_at": "2026-07-26T12:30:14.746Z",
+      "updated_at": "2026-09-09T12:30:15.286Z"
     },
     {
       "id": "prof-4",
@@ -167,8 +167,8 @@
       "max_photos": 30,
       "views_count": 440,
       "whatsapp_clicks": 98,
-      "created_at": "2026-08-19T19:10:40.414Z",
-      "updated_at": "2026-09-09T11:40:42.585Z"
+      "created_at": "2026-08-20T12:30:14.746Z",
+      "updated_at": "2026-09-09T12:30:15.314Z"
     },
     {
       "id": "prof-5",
@@ -201,8 +201,8 @@
       "max_photos": 30,
       "views_count": 920,
       "whatsapp_clicks": 275,
-      "created_at": "2026-07-10T19:10:40.414Z",
-      "updated_at": "2026-09-09T11:40:42.587Z"
+      "created_at": "2026-07-11T12:30:14.746Z",
+      "updated_at": "2026-09-09T12:30:15.325Z"
     }
   ],
   "gallery": {
@@ -219,7 +219,7 @@
       {
         "id": "e1a00000-0000-4000-8000-000000000012",
         "profile_id": "prof-1",
-        "image_url": "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80",
+        "image_url": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80",
         "title": "Manutenção Preventiva & Carga de Gás",
         "description": "Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.",
         "tag": "Manutenção",
@@ -228,7 +228,7 @@
       {
         "id": "e1a00000-0000-4000-8000-000000000013",
         "profile_id": "prof-1",
-        "image_url": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
+        "image_url": "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80",
         "title": "Higienização Química Completa",
         "description": "Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.",
         "tag": "Limpeza",
@@ -252,25 +252,25 @@
         "title": "Instalação de Ar Split Inverter",
         "description": "Instalação com teste de estanqueidade em nitrogênio, vácuo de 500 microns e isolamento térmico blindado.",
         "tag": "Instalação",
-        "created_at": "2026-09-04T10:00:00.000Z"
+        "created_at": "2026-09-04T12:30:14.746Z"
       },
       {
         "id": "e1a00000-0000-4000-8000-000000000012",
         "profile_id": "e1a00000-0000-4000-8000-000000000001",
-        "image_url": "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80",
+        "image_url": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80",
         "title": "Manutenção Preventiva & Carga de Gás",
         "description": "Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.",
         "tag": "Manutenção",
-        "created_at": "2026-09-05T11:30:00.000Z"
+        "created_at": "2026-09-05T12:30:14.746Z"
       },
       {
         "id": "e1a00000-0000-4000-8000-000000000013",
         "profile_id": "e1a00000-0000-4000-8000-000000000001",
-        "image_url": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
+        "image_url": "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80",
         "title": "Higienização Química Completa",
         "description": "Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.",
-        "tag": "Limpeza",
-        "created_at": "2026-09-06T14:15:00.000Z"
+        "tag": "Manutenção",
+        "created_at": "2026-09-06T12:30:14.746Z"
       },
       {
         "id": "e1a00000-0000-4000-8000-000000000014",
@@ -279,10 +279,10 @@
         "title": "Infraestrutura e Tubulação Embutida",
         "description": "Passagem de tubulação de cobre e dreno embutido em alvenaria antes do acabamento em gesso.",
         "tag": "Instalação",
-        "created_at": "2026-09-07T16:00:00.000Z"
+        "created_at": "2026-09-07T12:30:14.746Z"
       }
     ]
   },
   "testimonials": {},
-  "updatedAt": "2026-09-09T11:40:42.589Z"
+  "updatedAt": "2026-09-09T12:30:15.325Z"
 }

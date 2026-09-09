@@ -59,7 +59,7 @@ export const INITIAL_PROFILES: Profile[] = [
     whatsapp_number: '(15) 98819-3561',
     phone_number: '(15) 98819-3561',
     bio_short: 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade com nitrogênio e 1 ano de garantia.',
-    avatar_url: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=400&q=80',
+    avatar_url: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80',
     cover_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80',
     city_state: 'Boituva - SP',
     years_experience: 9,
@@ -204,7 +204,7 @@ const JHONATAS_PHOTOS: ServicePhoto[] = [
   {
     id: 'e1a00000-0000-4000-8000-000000000012',
     profile_id: 'e1a00000-0000-4000-8000-000000000001',
-    image_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80',
     title: 'Manutenção Preventiva & Carga de Gás',
     description: 'Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.',
     tag: 'Manutenção',
@@ -213,7 +213,7 @@ const JHONATAS_PHOTOS: ServicePhoto[] = [
   {
     id: 'e1a00000-0000-4000-8000-000000000013',
     profile_id: 'e1a00000-0000-4000-8000-000000000001',
-    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
     title: 'Higienização Química Completa',
     description: 'Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.',
     tag: 'Manutenção',

@@ -153,20 +153,24 @@ export function getLocalProfiles(): Profile[] {
 
   list = [canonicalAdmin, ...nonAdmins];
 
-  // 2. Rename Marcos Silva Climatização to Jhonatas Climatização
+  // 2. Rename Marcos Silva Climatização to Jhonatas Climatização & Sanitize legacy avatar photos
   list = list.map(p => {
-    if (p.id === 'prof-1' || p.full_name?.toLowerCase().includes('marcos') || p.username?.toLowerCase().includes('marcos')) {
+    let item = { ...p };
+    if (item.avatar_url && item.avatar_url.includes('photo-1581092918056')) {
+      item.avatar_url = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80';
+    }
+    if (item.id === 'prof-1' || item.id === 'e1a00000-0000-4000-8000-000000000001' || item.full_name?.toLowerCase().includes('marcos') || item.username?.toLowerCase().includes('marcos')) {
       return {
-        ...p,
+        ...item,
         full_name: 'Jhonatas Climatização',
         username: 'jhonatas-climatizacao',
-        profession: p.profession || 'Técnico em Refrigeração & Ar-Condicionado',
-        whatsapp_number: p.whatsapp_number || '(15) 98819-3561',
-        phone_number: p.phone_number || '(15) 98819-3561',
-        bio_short: p.bio_short?.replace(/Marcos/gi, 'Jhonatas') || 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade e 1 ano de garantia.'
+        profession: item.profession || 'Técnico em Refrigeração & Ar-Condicionado',
+        whatsapp_number: item.whatsapp_number || '(15) 98819-3561',
+        phone_number: item.phone_number || '(15) 98819-3561',
+        bio_short: item.bio_short?.replace(/Marcos/gi, 'Jhonatas') || 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade e 1 ano de garantia.'
       };
     }
-    return p;
+    return item;
   });
 
   // Clean up legacy/duplicate individual localStorage keys
@@ -234,8 +238,13 @@ export function saveLocalProfile(profile: Profile): Profile {
   const current = getLocalProfiles();
   const index = current.findIndex(p => p.id === profile.id || (p.username && profile.username && p.username.toLowerCase() === profile.username.toLowerCase()));
   let updated: Profile[];
+  let sanitizedAvatar = profile.avatar_url;
+  if (sanitizedAvatar && sanitizedAvatar.includes('photo-1581092918056')) {
+    sanitizedAvatar = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80';
+  }
   const enrichedProfile: Profile = {
     ...profile,
+    avatar_url: sanitizedAvatar,
     updated_at: new Date().toISOString()
   };
 
@@ -286,7 +295,16 @@ export function getLocalGallery(profileId: string): ServicePhoto[] {
           : undefined);
 
       if (list && list.length > 0) {
-        return list.filter(p => !isMockDemoPhoto(p));
+        const sanitized = list.map(item => {
+          if (item.image_url && item.image_url.includes('1581092335397')) {
+            return { ...item, image_url: 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80' };
+          }
+          if (item.image_url && item.image_url.includes('1581092160607')) {
+            return { ...item, image_url: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80' };
+          }
+          return item;
+        });
+        return sanitized.filter(p => !isMockDemoPhoto(p));
       }
     }
   } catch (e) {

@@ -86,7 +86,7 @@ export function compressImage(
 export const PRESET_AVATARS = [
   {
     name: 'Técnico Especialista',
-    url: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=400&q=80',
+    url: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80',
     tag: 'Industrial'
   },
   {

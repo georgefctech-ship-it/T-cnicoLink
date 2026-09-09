@@ -188,7 +188,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
           <div className="flex items-start gap-3.5">
             <div className="relative shrink-0">
               <img
-                src={profile.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
+                src={profile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
                 alt={profile.full_name}
                 className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl object-cover border-3 border-white shadow-md ring-2 ring-orange-500"
               />

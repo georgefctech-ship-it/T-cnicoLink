@@ -68,7 +68,7 @@ export function decodeProfilePayload(encoded: string): Profile | null {
       whatsapp_number: data.w || data.whatsapp_number || '',
       city_state: data.c || data.city_state || 'Brasil',
       bio_short: data.b || data.bio_short || '',
-      avatar_url: data.a || data.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&q=80&w=400',
+      avatar_url: data.a || data.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&q=80&w=400',
       years_experience: data.y || data.years_experience || 3,
       accepts_pix: true,
       accepts_cards: true,

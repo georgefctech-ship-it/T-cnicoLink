@@ -42,7 +42,10 @@ import {
   Link as LinkIcon,
   ExternalLink,
   Radio,
-  Code
+  Code,
+  Camera,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { Profile, SystemSettings, UserRole, UserStatus, UserPlan } from '../types';
 import { 
@@ -58,6 +61,8 @@ import {
 } from '../lib/supabaseClient';
 import { ProfessionSelect } from './ProfessionSelect';
 import { getDisplayHost } from '../lib/profileUrlHelper';
+import { compressImage, dataUrlToBlob, PRESET_AVATARS } from '../lib/imageHelper';
+import { uploadImageSmart } from '../lib/cloudSync';
 
 interface AdminControlViewProps {
   profiles: Profile[];
@@ -88,6 +93,37 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
   const [copiedScript, setCopiedScript] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+  const [isUploadingAdminAvatar, setIsUploadingAdminAvatar] = useState(false);
+  const [showAdminPresetAvatars, setShowAdminPresetAvatars] = useState(false);
+  const adminAvatarInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAdminAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingProfile) return;
+    setIsUploadingAdminAvatar(true);
+    try {
+      const optimized = await compressImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+        mimeType: 'image/jpeg'
+      });
+      let finalUrl = optimized;
+      try {
+        const blob = dataUrlToBlob(optimized);
+        const uploaded = await uploadImageSmart(blob || optimized, 'avatars', `avatar-${editingProfile.id}-${Date.now()}.jpg`);
+        if (uploaded) finalUrl = uploaded;
+      } catch (e) {
+        console.warn('Fallback to base64 for admin avatar upload:', e);
+      }
+      setEditingProfile({ ...editingProfile, avatar_url: finalUrl });
+    } catch (err) {
+      console.error('Error optimizing avatar:', err);
+    } finally {
+      setIsUploadingAdminAvatar(false);
+      if (adminAvatarInputRef.current) adminAvatarInputRef.current.value = '';
+    }
+  };
 
   // Supabase Configuration in Admin Panel
   const storedConfig = getStoredSupabaseConfig();
@@ -1411,19 +1447,98 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
               </div>
 
               <form onSubmit={handleSaveEditedUser} className="space-y-4">
-                {/* Avatar Preview + URL */}
-                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                  <img
-                    src={editingProfile.avatar_url || 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789'}
-                    alt="Prévia Avatar"
-                    className="w-16 h-16 rounded-xl object-cover border border-gray-300 bg-white shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLElement).setAttribute('src', 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789');
-                    }}
-                  />
-                  <div className="flex-1">
+                {/* Avatar Preview + Upload + URL */}
+                <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="relative group shrink-0">
+                      <img
+                        src={editingProfile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
+                        alt="Prévia Avatar"
+                        className="w-16 h-16 rounded-xl object-cover border-2 border-orange-500 bg-white shadow-xs"
+                        onError={(e) => {
+                          (e.target as HTMLElement).setAttribute('src', 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80');
+                        }}
+                      />
+                      {isUploadingAdminAvatar && (
+                        <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <input
+                          type="file"
+                          ref={adminAvatarInputRef}
+                          accept="image/*"
+                          onChange={handleAdminAvatarUpload}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          disabled={isUploadingAdminAvatar}
+                          onClick={() => adminAvatarInputRef.current?.click()}
+                          className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+                        >
+                          {isUploadingAdminAvatar ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5" />
+                          )}
+                          <span>{isUploadingAdminAvatar ? 'Enviando foto...' : 'Enviar Foto do Aparelho'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPresetAvatars(!showAdminPresetAvatars)}
+                          className="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{showAdminPresetAvatars ? 'Ocultar Modelos' : 'Escolher Modelo Pronto'}</span>
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-gray-500">
+                        Envie qualquer foto JPG/PNG do computador/celular ou cole a URL abaixo.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Preset Avatars Grid */}
+                  {showAdminPresetAvatars && (
+                    <div className="p-2.5 bg-white border border-gray-200 rounded-lg">
+                      <p className="text-[11px] font-bold text-gray-700 uppercase mb-2">
+                        Selecione um Avatar Profissional:
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        {PRESET_AVATARS.map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setEditingProfile({ ...editingProfile, avatar_url: preset.url });
+                              setShowAdminPresetAvatars(false);
+                            }}
+                            className="flex flex-col items-center gap-1 p-1 rounded-lg border border-gray-200 hover:border-orange-500 hover:bg-orange-50/50 transition-all cursor-pointer group text-center"
+                          >
+                            <img
+                              src={preset.url}
+                              alt={preset.name}
+                              className="w-10 h-10 rounded-lg object-cover ring-1 ring-gray-200 group-hover:ring-orange-500"
+                            />
+                            <span className="text-[10px] text-gray-600 truncate w-full font-medium">
+                              {preset.tag}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
                     <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
-                      Link / URL da Foto do Avatar
+                      Ou digite o Link / URL da Foto:
                     </label>
                     <input
                       type="url"
