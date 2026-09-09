@@ -15,8 +15,8 @@
       "whatsapp_number": "(15) 98819-3561",
       "phone_number": "(15) 98819-3561",
       "bio_short": "Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade com nitrogênio e 1 ano de garantia.",
-      "avatar_url": "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80",
-      "cover_url": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80",
+      "avatar_url": "",
+      "cover_url": "",
       "city_state": "Boituva - SP",
       "years_experience": 9,
       "accepts_pix": true,
@@ -31,7 +31,7 @@
       "max_photos": 30,
       "views_count": 780,
       "whatsapp_clicks": 194,
-      "updated_at": "2026-09-09T12:30:15.277Z",
+      "updated_at": "2026-09-09T14:43:40.364Z",
       "created_at": "2026-08-10T12:30:14.746Z"
     },
     {
@@ -49,7 +49,7 @@
       "whatsapp_number": "(15) 99999-8888",
       "phone_number": "(15) 99999-8888",
       "bio_short": "Conta de Administrador Master do TécnicoLink. Controle total sobre perfis, limites de planos, moderação de fotos e políticas de segurança.",
-      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+      "avatar_url": "https://jgdirmbxhdqobbzagphn.supabase.co/storage/v1/object/public/avatars/George_fullstack_dev.jpg",
       "cover_url": "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80",
       "city_state": "Boituva - SP",
       "years_experience": 10,
@@ -65,8 +65,8 @@
       "max_photos": 100,
       "views_count": 1420,
       "whatsapp_clicks": 340,
-      "created_at": "2026-06-11T12:30:14.746Z",
-      "updated_at": "2026-09-09T12:30:15.256Z"
+      "created_at": "2026-06-11T14:43:39.784Z",
+      "updated_at": "2026-09-09T14:43:40.360Z"
     },
     {
       "id": "prof-2",
@@ -83,8 +83,8 @@
       "whatsapp_number": "(21) 99881-3322",
       "phone_number": "(21) 99881-3322",
       "bio_short": "Laboratório técnico com bancada antiestática e microscópio trinocular. Troca de telas na hora com peças originais e garantia expressa.",
-      "avatar_url": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80",
-      "cover_url": "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=1200&q=80",
+      "avatar_url": "",
+      "cover_url": "",
       "city_state": "Rio de Janeiro - RJ",
       "years_experience": 7,
       "accepts_pix": true,
@@ -100,7 +100,7 @@
       "views_count": 615,
       "whatsapp_clicks": 162,
       "created_at": "2026-08-15T12:30:14.746Z",
-      "updated_at": "2026-09-09T12:30:15.310Z"
+      "updated_at": "2026-09-09T14:43:40.376Z"
     },
     {
       "id": "prof-3",
@@ -117,8 +117,8 @@
       "whatsapp_number": "(31) 98712-4400",
       "phone_number": "(31) 98712-4400",
       "bio_short": "Diagnóstico preciso em osciloscópio digital e estação de retrabalho BGA. Reparo de módulos industriais, nobreaks de alta potência e placas de TVs modernas.",
-      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-      "cover_url": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+      "avatar_url": "",
+      "cover_url": "",
       "city_state": "Belo Horizonte - MG",
       "years_experience": 14,
       "accepts_pix": true,
@@ -134,7 +134,7 @@
       "views_count": 530,
       "whatsapp_clicks": 128,
       "created_at": "2026-07-26T12:30:14.746Z",
-      "updated_at": "2026-09-09T12:30:15.286Z"
+      "updated_at": "2026-09-09T14:43:40.389Z"
     },
     {
       "id": "prof-4",
@@ -151,8 +151,8 @@
       "whatsapp_number": "(41) 99182-7766",
       "phone_number": "(41) 99182-7766",
       "bio_short": "Criação de modelos 3D industriais, moldes e estátuas de alta definição. Impressões em altíssima resolução com pós-processamento profissional e pintura.",
-      "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
-      "cover_url": "https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=1200&q=80",
+      "avatar_url": "",
+      "cover_url": "",
       "city_state": "Curitiba - PR",
       "years_experience": 6,
       "accepts_pix": true,
@@ -168,7 +168,7 @@
       "views_count": 440,
       "whatsapp_clicks": 98,
       "created_at": "2026-08-20T12:30:14.746Z",
-      "updated_at": "2026-09-09T12:30:15.314Z"
+      "updated_at": "2026-09-09T14:43:40.391Z"
     },
     {
       "id": "prof-5",
@@ -185,8 +185,8 @@
       "whatsapp_number": "(51) 99344-5511",
       "phone_number": "(51) 99344-5511",
       "bio_short": "Transformando momentos especiais em sabores inesquecíveis. Bolos artísticos sob encomenda com ingredientes premium, chocolates nobres e finalização impecável.",
-      "avatar_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-      "cover_url": "https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1200&q=80",
+      "avatar_url": "",
+      "cover_url": "",
       "city_state": "Porto Alegre - RS",
       "years_experience": 8,
       "accepts_pix": true,
@@ -202,87 +202,10 @@
       "views_count": 920,
       "whatsapp_clicks": 275,
       "created_at": "2026-07-11T12:30:14.746Z",
-      "updated_at": "2026-09-09T12:30:15.325Z"
+      "updated_at": "2026-09-09T14:43:40.394Z"
     }
   ],
-  "gallery": {
-    "prof-1": [
-      {
-        "id": "e1a00000-0000-4000-8000-000000000011",
-        "profile_id": "prof-1",
-        "image_url": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80",
-        "title": "Instalação de Ar Split Inverter",
-        "description": "Instalação com teste de estanqueidade em nitrogênio, vácuo de 500 microns e isolamento térmico blindado.",
-        "tag": "Instalação",
-        "created_at": "2026-09-04T10:00:00.000Z"
-      },
-      {
-        "id": "e1a00000-0000-4000-8000-000000000012",
-        "profile_id": "prof-1",
-        "image_url": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80",
-        "title": "Manutenção Preventiva & Carga de Gás",
-        "description": "Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.",
-        "tag": "Manutenção",
-        "created_at": "2026-09-05T11:30:00.000Z"
-      },
-      {
-        "id": "e1a00000-0000-4000-8000-000000000013",
-        "profile_id": "prof-1",
-        "image_url": "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80",
-        "title": "Higienização Química Completa",
-        "description": "Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.",
-        "tag": "Limpeza",
-        "created_at": "2026-09-06T14:15:00.000Z"
-      },
-      {
-        "id": "e1a00000-0000-4000-8000-000000000014",
-        "profile_id": "prof-1",
-        "image_url": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80",
-        "title": "Infraestrutura e Tubulação Embutida",
-        "description": "Passagem de tubulação de cobre e dreno embutido em alvenaria antes do acabamento em gesso.",
-        "tag": "Instalação",
-        "created_at": "2026-09-07T16:00:00.000Z"
-      }
-    ],
-    "e1a00000-0000-4000-8000-000000000001": [
-      {
-        "id": "e1a00000-0000-4000-8000-000000000011",
-        "profile_id": "e1a00000-0000-4000-8000-000000000001",
-        "image_url": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80",
-        "title": "Instalação de Ar Split Inverter",
-        "description": "Instalação com teste de estanqueidade em nitrogênio, vácuo de 500 microns e isolamento térmico blindado.",
-        "tag": "Instalação",
-        "created_at": "2026-09-04T12:30:14.746Z"
-      },
-      {
-        "id": "e1a00000-0000-4000-8000-000000000012",
-        "profile_id": "e1a00000-0000-4000-8000-000000000001",
-        "image_url": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80",
-        "title": "Manutenção Preventiva & Carga de Gás",
-        "description": "Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.",
-        "tag": "Manutenção",
-        "created_at": "2026-09-05T12:30:14.746Z"
-      },
-      {
-        "id": "e1a00000-0000-4000-8000-000000000013",
-        "profile_id": "e1a00000-0000-4000-8000-000000000001",
-        "image_url": "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80",
-        "title": "Higienização Química Completa",
-        "description": "Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.",
-        "tag": "Manutenção",
-        "created_at": "2026-09-06T12:30:14.746Z"
-      },
-      {
-        "id": "e1a00000-0000-4000-8000-000000000014",
-        "profile_id": "e1a00000-0000-4000-8000-000000000001",
-        "image_url": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80",
-        "title": "Infraestrutura e Tubulação Embutida",
-        "description": "Passagem de tubulação de cobre e dreno embutido em alvenaria antes do acabamento em gesso.",
-        "tag": "Instalação",
-        "created_at": "2026-09-07T12:30:14.746Z"
-      }
-    ]
-  },
+  "gallery": {},
   "testimonials": {},
-  "updatedAt": "2026-09-09T12:30:15.325Z"
+  "updatedAt": "2026-09-09T14:43:40.394Z"
 }

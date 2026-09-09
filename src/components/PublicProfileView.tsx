@@ -187,11 +187,20 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
           
           <div className="flex items-start gap-3.5">
             <div className="relative shrink-0">
-              <img
-                src={profile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
-                alt={profile.full_name}
-                className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl object-cover border-3 border-white shadow-md ring-2 ring-orange-500"
-              />
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.full_name}
+                  className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl object-cover border-3 border-white shadow-md ring-2 ring-orange-500"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl bg-orange-100 border-3 border-white shadow-md ring-2 ring-orange-500 flex items-center justify-center text-orange-600 font-black text-2xl uppercase">
+                  {profile.full_name ? profile.full_name.charAt(0) : 'T'}
+                </div>
+              )}
               <div className="absolute -bottom-1 -right-1 bg-emerald-600 text-white p-0.5 rounded-full ring-2 ring-white" title="Disponível para atendimento">
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
               </div>

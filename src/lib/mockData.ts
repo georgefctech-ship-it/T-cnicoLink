@@ -59,8 +59,8 @@ export const INITIAL_PROFILES: Profile[] = [
     whatsapp_number: '(15) 98819-3561',
     phone_number: '(15) 98819-3561',
     bio_short: 'Especialista em climatização residencial e comercial. Instalações com bomba de vácuo, teste de estanqueidade com nitrogênio e 1 ano de garantia.',
-    avatar_url: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80',
-    cover_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80',
+    avatar_url: '',
+    cover_url: '',
     city_state: 'Boituva - SP',
     years_experience: 9,
     accepts_pix: true,
@@ -87,8 +87,8 @@ export const INITIAL_PROFILES: Profile[] = [
     whatsapp_number: '(21) 99881-3322',
     phone_number: '(21) 99881-3322',
     bio_short: 'Laboratório técnico com bancada antiestática e microscópio trinocular. Troca de telas na hora com peças originais e garantia expressa.',
-    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
-    cover_url: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=1200&q=80',
+    avatar_url: '',
+    cover_url: '',
     city_state: 'Rio de Janeiro - RJ',
     years_experience: 7,
     accepts_pix: true,
@@ -115,8 +115,8 @@ export const INITIAL_PROFILES: Profile[] = [
     whatsapp_number: '(31) 98712-4400',
     phone_number: '(31) 98712-4400',
     bio_short: 'Diagnóstico preciso em osciloscópio digital e estação de retrabalho BGA. Reparo de módulos industriais, nobreaks de alta potência e placas de TVs modernas.',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-    cover_url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
+    avatar_url: '',
+    cover_url: '',
     city_state: 'Belo Horizonte - MG',
     years_experience: 14,
     accepts_pix: true,
@@ -143,8 +143,8 @@ export const INITIAL_PROFILES: Profile[] = [
     whatsapp_number: '(41) 99182-7766',
     phone_number: '(41) 99182-7766',
     bio_short: 'Criação de modelos 3D industriais, moldes e estátuas de alta definição. Impressões em altíssima resolução com pós-processamento profissional e pintura.',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-    cover_url: 'https://images.unsplash.com/photo-1633493763531-155e9754f9d2?auto=format&fit=crop&w=1200&q=80',
+    avatar_url: '',
+    cover_url: '',
     city_state: 'Curitiba - PR',
     years_experience: 6,
     accepts_pix: true,
@@ -171,8 +171,8 @@ export const INITIAL_PROFILES: Profile[] = [
     whatsapp_number: '(51) 99344-5511',
     phone_number: '(51) 99344-5511',
     bio_short: 'Transformando momentos especiais em sabores inesquecíveis. Bolos artísticos sob encomenda com ingredientes premium, chocolates nobres e finalização impecável.',
-    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
-    cover_url: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1200&q=80',
+    avatar_url: '',
+    cover_url: '',
     city_state: 'Porto Alegre - RS',
     years_experience: 8,
     accepts_pix: true,
@@ -191,54 +191,42 @@ export const INITIAL_PROFILES: Profile[] = [
   }
 ];
 
-const JHONATAS_PHOTOS: ServicePhoto[] = [
-  {
-    id: 'e1a00000-0000-4000-8000-000000000011',
-    profile_id: 'e1a00000-0000-4000-8000-000000000001',
-    image_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80',
-    title: 'Instalação de Ar Split Inverter',
-    description: 'Instalação com teste de estanqueidade em nitrogênio, vácuo de 500 microns e isolamento térmico blindado.',
-    tag: 'Instalação',
-    created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-  },
-  {
-    id: 'e1a00000-0000-4000-8000-000000000012',
-    profile_id: 'e1a00000-0000-4000-8000-000000000001',
-    image_url: 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80',
-    title: 'Manutenção Preventiva & Carga de Gás',
-    description: 'Aferição de superaquecimento e sub-resfriamento com manifold digital, garantindo rendimento térmico máximo.',
-    tag: 'Manutenção',
-    created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-  },
-  {
-    id: 'e1a00000-0000-4000-8000-000000000013',
-    profile_id: 'e1a00000-0000-4000-8000-000000000001',
-    image_url: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
-    title: 'Higienização Química Completa',
-    description: 'Limpeza profunda da serpentina e turbina com lavadora de alta pressão e bactericida certificado.',
-    tag: 'Manutenção',
-    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: 'e1a00000-0000-4000-8000-000000000014',
-    profile_id: 'e1a00000-0000-4000-8000-000000000001',
-    image_url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
-    title: 'Infraestrutura e Tubulação Embutida',
-    description: 'Passagem de tubulação de cobre e dreno embutido em alvenaria antes do acabamento em gesso.',
-    tag: 'Instalação',
-    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-];
+// Galeria inicial 100% vazia - exibe estritamente as fotos e links adicionados pelo próprio usuário
+export const INITIAL_GALLERY: Record<string, ServicePhoto[]> = {};
 
-export const INITIAL_GALLERY: Record<string, ServicePhoto[]> = {
-  'prof-1': JHONATAS_PHOTOS,
-  'e1a00000-0000-4000-8000-000000000001': JHONATAS_PHOTOS,
-  'jhonatas-climatizacao': JHONATAS_PHOTOS,
-};
-
+// Função estrita que identifica e remove fotos de demonstração/mock antigas
 export function isMockDemoPhoto(photo: { id?: string; image_url?: string; title?: string } | null | undefined): boolean {
   if (!photo || !photo.image_url) return true;
-  // Do not filter out valid photos added by user or preset initial gallery
+  const url = photo.image_url.toLowerCase();
+  
+  // Detecta URLs de fotos de demonstração do Unsplash que foram usadas como mock
+  if (
+    url.includes('photo-1621905252507') ||
+    url.includes('photo-1585338107529') ||
+    url.includes('photo-1590496793929') ||
+    url.includes('photo-1621905251189') ||
+    url.includes('photo-1581092') ||
+    url.includes('photo-1556911220') ||
+    url.includes('photo-1589939705384') ||
+    url.includes('photo-1607472586893') ||
+    url.includes('photo-1540569014015') ||
+    url.includes('photo-1539571696357') ||
+    url.includes('photo-1507003211169') ||
+    url.includes('photo-1500648767791') ||
+    url.includes('photo-1573496359142')
+  ) {
+    return true;
+  }
+  
+  // Fotos com IDs de mock antigos
+  if (photo.id && (
+    photo.id.startsWith('e1a00000-0000-4000-8000-00000000001') ||
+    photo.id === 'test-photo-1' ||
+    photo.id === 'test-photo-2'
+  )) {
+    return true;
+  }
+  
   return false;
 }
 

@@ -153,11 +153,28 @@ export function getLocalProfiles(): Profile[] {
 
   list = [canonicalAdmin, ...nonAdmins];
 
-  // 2. Rename Marcos Silva Climatização to Jhonatas Climatização & Sanitize legacy avatar photos
+  // 2. Rename Marcos Silva Climatização to Jhonatas Climatização & Sanitize legacy demo avatars
   list = list.map(p => {
     let item = { ...p };
-    if (item.avatar_url && item.avatar_url.includes('photo-1581092918056')) {
-      item.avatar_url = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80';
+    // Remove any demo mock photos from avatar or cover
+    if (item.avatar_url && (
+      item.avatar_url.includes('photo-1581092918056') ||
+      item.avatar_url.includes('photo-1540569014015') ||
+      item.avatar_url.includes('photo-1539571696357') ||
+      item.avatar_url.includes('photo-1507003211169') ||
+      item.avatar_url.includes('photo-1500648767791') ||
+      item.avatar_url.includes('photo-1573496359142')
+    )) {
+      item.avatar_url = '';
+    }
+    if (item.cover_url && (
+      item.cover_url.includes('photo-1621905252507') ||
+      item.cover_url.includes('photo-1591799264318') ||
+      item.cover_url.includes('photo-1518770660439') ||
+      item.cover_url.includes('photo-1633493763531') ||
+      item.cover_url.includes('photo-1535141192574')
+    )) {
+      item.cover_url = '';
     }
     if (item.id === 'prof-1' || item.id === 'e1a00000-0000-4000-8000-000000000001' || item.full_name?.toLowerCase().includes('marcos') || item.username?.toLowerCase().includes('marcos')) {
       return {
@@ -238,9 +255,16 @@ export function saveLocalProfile(profile: Profile): Profile {
   const current = getLocalProfiles();
   const index = current.findIndex(p => p.id === profile.id || (p.username && profile.username && p.username.toLowerCase() === profile.username.toLowerCase()));
   let updated: Profile[];
-  let sanitizedAvatar = profile.avatar_url;
-  if (sanitizedAvatar && sanitizedAvatar.includes('photo-1581092918056')) {
-    sanitizedAvatar = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80';
+  let sanitizedAvatar = profile.avatar_url || '';
+  if (sanitizedAvatar && (
+    sanitizedAvatar.includes('photo-1581092918056') ||
+    sanitizedAvatar.includes('photo-1540569014015') ||
+    sanitizedAvatar.includes('photo-1539571696357') ||
+    sanitizedAvatar.includes('photo-1507003211169') ||
+    sanitizedAvatar.includes('photo-1500648767791') ||
+    sanitizedAvatar.includes('photo-1573496359142')
+  )) {
+    sanitizedAvatar = '';
   }
   const enrichedProfile: Profile = {
     ...profile,
@@ -295,42 +319,34 @@ export function getLocalGallery(profileId: string): ServicePhoto[] {
           : undefined);
 
       if (list && list.length > 0) {
-        const sanitized = list.map(item => {
-          if (item.image_url && item.image_url.includes('1581092335397')) {
-            return { ...item, image_url: 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?auto=format&fit=crop&w=800&q=80' };
-          }
-          if (item.image_url && item.image_url.includes('1581092160607')) {
-            return { ...item, image_url: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80' };
-          }
-          return item;
-        });
-        return sanitized.filter(p => !isMockDemoPhoto(p));
+        const cleanList = list.filter(p => !isMockDemoPhoto(p));
+        return cleanList;
       }
     }
   } catch (e) {
     console.error(e);
   }
   
-  // Return INITIAL_GALLERY if available
-  return INITIAL_GALLERY[profileId] || 
-    (profileId === 'prof-1' || profileId === 'e1a00000-0000-4000-8000-000000000001' || profileId === 'jhonatas-climatizacao'
-      ? INITIAL_GALLERY['prof-1'] || []
-      : []);
+  // Return empty list if no user photos
+  return [];
 }
 
 export function saveLocalGalleryPhoto(photo: ServicePhoto): ServicePhoto {
+  if (isMockDemoPhoto(photo)) return photo;
   try {
     const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
     const all: Record<string, ServicePhoto[]> = raw ? JSON.parse(raw) : {};
     if (!all[photo.profile_id]) {
       all[photo.profile_id] = [];
     }
-    all[photo.profile_id] = [photo, ...all[photo.profile_id].filter(p => p.id !== photo.id)];
+    const cleanExisting = all[photo.profile_id].filter(p => p.id !== photo.id && !isMockDemoPhoto(p));
+    all[photo.profile_id] = [photo, ...cleanExisting];
     
     // Also mirror to known UUID or ID alias
     if (photo.profile_id === 'prof-1') {
       all['e1a00000-0000-4000-8000-000000000001'] = all[photo.profile_id];
-    } else if (photo.profile_id === 'e1a00000-0000-4000-8000-000000000001') {
+      all['jhonatas-climatizacao'] = all[photo.profile_id];
+    } else if (photo.profile_id === 'e1a00000-0000-4000-8000-000000000001' || photo.profile_id === 'jhonatas-climatizacao') {
       all['prof-1'] = all[photo.profile_id];
     }
 

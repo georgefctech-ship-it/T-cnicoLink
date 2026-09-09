@@ -45,7 +45,7 @@ import {
 import { PlanUpgradeModal } from './PlanUpgradeModal';
 import { DEFAULT_SYSTEM_SETTINGS } from '../lib/mockData';
 import { ProfessionSelect } from './ProfessionSelect';
-import { compressImage, dataUrlToBlob, PRESET_AVATARS } from '../lib/imageHelper';
+import { compressImage, dataUrlToBlob } from '../lib/imageHelper';
 import { uploadImageSmart } from '../lib/cloudSync';
 
 interface PainelViewProps {
@@ -82,7 +82,6 @@ export const PainelView: React.FC<PainelViewProps> = ({
   const [photoInputMode, setPhotoInputMode] = useState<'file' | 'url'>('file');
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [showAvatarUrlInput, setShowAvatarUrlInput] = useState(false);
-  const [showPresetAvatars, setShowPresetAvatars] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarSaveSuccess, setAvatarSaveSuccess] = useState(false);
   const [avatarUrlText, setAvatarUrlText] = useState('');
@@ -251,16 +250,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
     }
   }
 
-  function handleSelectPresetAvatar(url: string) {
-    const updated = { ...formData, avatar_url: url };
-    setFormData(updated);
-    onSaveProfile(updated);
-    setShowPresetAvatars(false);
-    setAvatarSaveSuccess(true);
-    setTimeout(() => setAvatarSaveSuccess(false), 3500);
-  }
-
-  // Add Photo by Direct Image URL (Unsplash, Imgur, Drive, etc.)
+  // Add Photo by Direct Image URL (Imgur, Drive, Postimages, etc.)
   function handleAddPhotoByUrl() {
     const url = newPhotoUrl.trim();
     if (!url) return;
@@ -506,11 +496,20 @@ export const PainelView: React.FC<PainelViewProps> = ({
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div className="flex flex-col items-center gap-1.5 shrink-0">
                   <div className="relative group shrink-0">
-                    <img
-                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
-                      alt="Foto do perfil"
-                      className="w-20 h-20 rounded-xl object-cover ring-2 ring-orange-500/50 shadow-sm bg-gray-100"
-                    />
+                    {formData.avatar_url ? (
+                      <img
+                        src={formData.avatar_url}
+                        alt="Foto do perfil"
+                        className="w-20 h-20 rounded-xl object-cover ring-2 ring-orange-500/50 shadow-sm bg-gray-100"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-xl bg-orange-100 ring-2 ring-orange-500/50 shadow-sm flex items-center justify-center text-orange-600 font-black text-2xl uppercase">
+                        {formData.full_name ? formData.full_name.charAt(0) : 'T'}
+                      </div>
+                    )}
                     <button
                       type="button"
                       disabled={isUploadingAvatar}
@@ -551,27 +550,30 @@ export const PainelView: React.FC<PainelViewProps> = ({
                       Nome Completo ou Nome Fantasia <span className="text-orange-600">*</span>
                     </label>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPresetAvatars(!showPresetAvatars);
-                          setShowAvatarUrlInput(false);
-                        }}
-                        className="text-[11px] text-gray-600 hover:text-orange-600 font-semibold flex items-center gap-1 bg-gray-100 hover:bg-orange-50 px-2 py-0.5 rounded transition-colors"
-                      >
-                        <Sparkles className="w-3 h-3 text-orange-500" />
-                        <span>Avatares Prontos</span>
-                      </button>
+                      {formData.avatar_url && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, avatar_url: '' }));
+                            saveLocalProfile({ ...formData, avatar_url: '' });
+                            setAvatarSaveSuccess(true);
+                            setTimeout(() => setAvatarSaveSuccess(false), 3000);
+                          }}
+                          className="text-[11px] text-red-600 hover:text-red-700 font-semibold flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Remover Foto</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
                           setShowAvatarUrlInput(!showAvatarUrlInput);
-                          setShowPresetAvatars(false);
                         }}
-                        className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                        className="text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded transition-colors"
                       >
                         <LinkIcon className="w-3 h-3" />
-                        <span>{showAvatarUrlInput ? 'Fechar' : 'Via Link'}</span>
+                        <span>{showAvatarUrlInput ? 'Fechar Link' : 'Adicionar via Link'}</span>
                       </button>
                     </div>
                   </div>
@@ -580,25 +582,6 @@ export const PainelView: React.FC<PainelViewProps> = ({
                     <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-2 animate-fadeIn">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>Foto do perfil salva e sincronizada com sucesso!</span>
-                    </div>
-                  )}
-
-                  {showPresetAvatars && (
-                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
-                      <p className="text-[11px] font-bold text-gray-600">Escolha um avatar profissional com 1 clique:</p>
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        {PRESET_AVATARS.map((preset, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => handleSelectPresetAvatar(preset.url)}
-                            className="group relative flex flex-col items-center gap-1 p-1 bg-white border border-gray-200 hover:border-orange-500 rounded-lg transition-all"
-                          >
-                            <img src={preset.url} alt={preset.name} className="w-10 h-10 rounded-full object-cover group-hover:scale-105 transition-transform" />
-                            <span className="text-[9px] font-medium text-gray-700 text-center truncate w-full">{preset.tag}</span>
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   )}
 
@@ -908,84 +891,24 @@ export const PainelView: React.FC<PainelViewProps> = ({
               </div>
 
               {/* Quick sample photo loader */}
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[11px] text-gray-700 font-bold flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-orange-600" />
-                    <span>Fotos de exemplo prontas (clique para adicionar):</span>
+              {gallery.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                  <span className="text-[11px] text-gray-500">
+                    Exibindo apenas fotos e links adicionados por você ({gallery.length} fotos salvas)
                   </span>
-                  {gallery.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Deseja excluir todas as fotos da galeria para começar do zero?')) {
-                          gallery.forEach(p => onDeletePhoto(p.id));
-                        }
-                      }}
-                      className="text-[10px] text-red-600 hover:text-red-700 font-semibold hover:underline"
-                    >
-                      Limpar todas as fotos
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => handleAddSamplePhoto(
-                      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
-                      'Quadro de Distribuição e Disjuntores',
-                      'Instalação'
-                    )}
-                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
+                    onClick={() => {
+                      if (confirm('Deseja excluir todas as fotos da sua galeria?')) {
+                        gallery.forEach(p => onDeletePhoto(p.id));
+                      }
+                    }}
+                    className="text-[10px] text-red-600 hover:text-red-700 font-semibold hover:underline"
                   >
-                    + Elétrica
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSamplePhoto(
-                      'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80',
-                      'Instalação de Ar Split Inverter',
-                      'Instalação'
-                    )}
-                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
-                  >
-                    + Ar-Condicionado
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSamplePhoto(
-                      'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
-                      'Móvel Planejado de Cozinha',
-                      'Acabamento'
-                    )}
-                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
-                  >
-                    + Marcenaria
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSamplePhoto(
-                      'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80',
-                      'Pintura Interna e Acabamento Fino',
-                      'Acabamento'
-                    )}
-                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
-                  >
-                    + Pintura
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSamplePhoto(
-                      'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?auto=format&fit=crop&w=800&q=80',
-                      'Instalação e Troca de Tubulação Hidráulica',
-                      'Manutenção'
-                    )}
-                    className="text-[10px] bg-white hover:bg-orange-50 hover:border-orange-300 border border-gray-300 text-gray-700 px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1"
-                  >
-                    + Hidráulica
+                    Excluir todas as fotos
                   </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Gallery Grid */}
@@ -1229,11 +1152,17 @@ export const PainelView: React.FC<PainelViewProps> = ({
 
                   {/* Profile Info */}
                   <div className="px-4 -mt-10 relative z-10 text-center mb-4">
-                    <img
-                      src={formData.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
-                      alt="Avatar"
-                      className="w-20 h-20 bg-white rounded-full border-4 border-white shadow-md mx-auto object-cover"
-                    />
+                    {formData.avatar_url ? (
+                      <img
+                        src={formData.avatar_url}
+                        alt="Avatar"
+                        className="w-20 h-20 bg-white rounded-full border-4 border-white shadow-md mx-auto object-cover"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 bg-orange-100 text-orange-600 font-black text-2xl rounded-full border-4 border-white shadow-md mx-auto flex items-center justify-center uppercase">
+                        {formData.full_name ? formData.full_name.charAt(0) : 'T'}
+                      </div>
+                    )}
                     <h3 className="font-bold text-base text-gray-900 mt-2">{formData.full_name || 'Seu Nome'}</h3>
                     <p className="text-xs text-orange-600 font-bold">{formData.profession || 'Especialidade'}</p>
                     
@@ -1439,7 +1368,7 @@ export const PainelView: React.FC<PainelViewProps> = ({
                     alt={editPhotoTitle}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80';
+                      (e.target as HTMLImageElement).style.opacity = '0.5';
                     }}
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">

@@ -6,7 +6,12 @@ import { Profile } from '../types';
  */
 export function getBaseAppUrl(): string {
   if (typeof window !== 'undefined' && window.location.origin) {
-    return window.location.origin;
+    let origin = window.location.origin;
+    // Converte ais-dev- para ais-pre- para que dispositivos externos/celulares acessem diretamente sem bloqueio de login do Google
+    if (origin.includes('ais-dev-')) {
+      origin = origin.replace('ais-dev-', 'ais-pre-');
+    }
+    return origin;
   }
   return 'https://tecnico-link.com';
 }
@@ -68,7 +73,7 @@ export function decodeProfilePayload(encoded: string): Profile | null {
       whatsapp_number: data.w || data.whatsapp_number || '',
       city_state: data.c || data.city_state || 'Brasil',
       bio_short: data.b || data.bio_short || '',
-      avatar_url: data.a || data.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&q=80&w=400',
+      avatar_url: data.a || data.avatar_url || '',
       years_experience: data.y || data.years_experience || 3,
       accepts_pix: true,
       accepts_cards: true,

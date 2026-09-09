@@ -1451,14 +1451,20 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                 <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
                   <div className="flex items-center gap-4">
                     <div className="relative group shrink-0">
-                      <img
-                        src={editingProfile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80'}
-                        alt="Prévia Avatar"
-                        className="w-16 h-16 rounded-xl object-cover border-2 border-orange-500 bg-white shadow-xs"
-                        onError={(e) => {
-                          (e.target as HTMLElement).setAttribute('src', 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=400&q=80');
-                        }}
-                      />
+                      {editingProfile.avatar_url ? (
+                        <img
+                          src={editingProfile.avatar_url}
+                          alt="Prévia Avatar"
+                          className="w-16 h-16 rounded-xl object-cover border-2 border-orange-500 bg-white shadow-xs"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl border-2 border-orange-500 bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl uppercase">
+                          {editingProfile.full_name ? editingProfile.full_name.charAt(0) : 'T'}
+                        </div>
+                      )}
                       {isUploadingAdminAvatar && (
                         <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white">
                           <Loader2 className="w-5 h-5 animate-spin" />
