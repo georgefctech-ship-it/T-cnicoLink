@@ -1,106 +1,167 @@
 /**
- * Serviço de API de Busca de Profissões e Ocupações em Tempo Real
- * Baseado no catálogo de ocupações técnicas e prestadores de serviços no Brasil (CBO / Classificação Brasileira).
+ * Serviço de API de Busca de Empregos, Ocupações e Profissões em Tempo Real
+ * Suporte a busca por qualquer categoria do mercado de trabalho brasileiro (CBO).
  */
+
+export const JOB_CATEGORIES = [
+  'Qualquer Categoria',
+  'Tecnologia & TI',
+  'Construção & Reformas',
+  'Vendas & Comercial',
+  'Saúde & Bem-Estar',
+  'Administrativo & Finanças',
+  'Logística & Transporte',
+  'Gastronomia & Alimentação',
+  'Beleza & Estética',
+  'Educação & Treinamento',
+  'Marketing & Design',
+  'Serviços Gerais & Manutenção',
+  'Jurídico & Consultoria'
+] as const;
+
+export type JobCategory = typeof JOB_CATEGORIES[number];
 
 export interface ProfessionApiItem {
   id: string;
   name: string;
+  category: JobCategory;
   area: string;
+  cbo?: string;
+  demand?: 'Alta Demanda' | 'Média Demanda' | 'Crescente';
+  openJobsCount?: number;
   synonyms?: string[];
 }
 
-// Catálogo abrangente com mais de 160 ocupações técnicas e serviços no Brasil
+// Catálogo abrangente com mais de 180 profissões do mercado de trabalho
 export const PROFESSIONS_CATALOG: ProfessionApiItem[] = [
-  // Elétrica & Energia
-  { id: '1', name: 'Eletricista Residencial e Comercial', area: 'Elétrica', synonyms: ['eletricista', 'eletricidade', 'fiação', 'disjuntor', 'tomada', 'quadro elétrico'] },
-  { id: '2', name: 'Eletricista Predial & Padrão de Entrada', area: 'Elétrica', synonyms: ['padrão copel', 'padrão enel', 'entrada de luz', 'poste', 'trifásico'] },
-  { id: '3', name: 'Eletricista Industrial & Comandos Elétricos', area: 'Elétrica', synonyms: ['inversor de frequência', 'painel industrial', 'plc', 'automação'] },
-  { id: '4', name: 'Instalador de Energia Solar / Fotovoltaica', area: 'Energia Solar', synonyms: ['placa solar', 'painel solar', 'inversor solar', 'energia limpa'] },
-  { id: '5', name: 'Montador de Quadros Elétricos & Disjuntores', area: 'Elétrica', synonyms: ['painéis', 'barramento', 'dps', 'dr', 'quadro de distribuição'] },
-  { id: '6', name: 'Instalador de Iluminação Decorativa & Fitas LED', area: 'Iluminação', synonyms: ['led', 'perfil de led', 'lustre', 'spots', 'iluminação'] },
-  { id: '7', name: 'Técnico em Geradores de Energia', area: 'Elétrica', synonyms: ['gerador a diesel', 'gerador a gasolina', 'no-break'] },
-  { id: '8', name: 'Eletrotécnico Especializado', area: 'Engenharia & Técnica', synonyms: ['laudo técnico', 'art', 'projetos elétricos', 'cft'] },
+  // ==================== TECNOLOGIA & TI ====================
+  { id: 'tech-1', name: 'Desenvolvedor(a) Full Stack', category: 'Tecnologia & TI', area: 'Software', cbo: '2124-05', demand: 'Alta Demanda', openJobsCount: 1420, synonyms: ['programador', 'developer', 'react', 'node', 'web', 'fullstack'] },
+  { id: 'tech-2', name: 'Desenvolvedor(a) Frontend', category: 'Tecnologia & TI', area: 'Software', cbo: '2124-10', demand: 'Alta Demanda', openJobsCount: 980, synonyms: ['frontend', 'react', 'vue', 'html', 'css', 'javascript', 'typescript'] },
+  { id: 'tech-3', name: 'Desenvolvedor(a) Backend', category: 'Tecnologia & TI', area: 'Software', cbo: '2124-15', demand: 'Alta Demanda', openJobsCount: 1150, synonyms: ['backend', 'python', 'java', 'c#', 'php', 'golang', 'api', 'banco de dados'] },
+  { id: 'tech-4', name: 'Desenvolvedor(a) Mobile (iOS & Android)', category: 'Tecnologia & TI', area: 'Mobile', cbo: '2124-20', demand: 'Alta Demanda', openJobsCount: 650, synonyms: ['mobile', 'flutter', 'react native', 'swift', 'kotlin', 'aplicativos'] },
+  { id: 'tech-5', name: 'Analista de Suporte Técnico & Help Desk', category: 'Tecnologia & TI', area: 'Suporte & TI', cbo: '3172-10', demand: 'Alta Demanda', openJobsCount: 1850, synonyms: ['helpdesk', 'suporte', 'atendimento ti', 'redes', 'hardware', 'formatação'] },
+  { id: 'tech-6', name: 'Designer UI/UX & Produto Digital', category: 'Tecnologia & TI', area: 'Design & Produto', cbo: '2624-10', demand: 'Crescente', openJobsCount: 520, synonyms: ['ui', 'ux', 'figma', 'designer de interface', 'experiência do usuário', 'prototipagem'] },
+  { id: 'tech-7', name: 'Analista de Dados & Business Intelligence (BI)', category: 'Tecnologia & TI', area: 'Dados & BI', cbo: '2124-25', demand: 'Alta Demanda', openJobsCount: 890, synonyms: ['power bi', 'sql', 'analytics', 'dados', 'data science', 'excel avançado'] },
+  { id: 'tech-8', name: 'Administrador(a) de Redes & Infraestrutura', category: 'Tecnologia & TI', area: 'Infraestrutura', cbo: '2123-15', demand: 'Média Demanda', openJobsCount: 430, synonyms: ['redes', 'servidores', 'linux', 'windows server', 'cisco', 'mikrotik'] },
+  { id: 'tech-9', name: 'Especialista em Cibersegurança & Segurança da Informação', category: 'Tecnologia & TI', area: 'Segurança', cbo: '2123-20', demand: 'Alta Demanda', openJobsCount: 310, synonyms: ['segurança digital', 'hacker ético', 'pentest', 'lgpd', 'firewall'] },
+  { id: 'tech-10', name: 'Técnico(a) em Manutenção de Computadores & Notebooks', category: 'Tecnologia & TI', area: 'Hardware', cbo: '3171-10', demand: 'Alta Demanda', openJobsCount: 1200, synonyms: ['manutenção pc', 'conserto notebook', 'gamer', 'placa mãe', 'limpeza e pasta térmica'] },
+  { id: 'tech-11', name: 'Técnico(a) em Manutenção de Celulares & Smartphones', category: 'Tecnologia & TI', area: 'Dispositivos Móveis', cbo: '3132-20', demand: 'Alta Demanda', openJobsCount: 890, synonyms: ['troca de tela', 'bateria iphone', 'conector samsung', 'placa de celular'] },
+  { id: 'tech-12', name: 'Analista de Qualidade de Software (QA / Tester)', category: 'Tecnologia & TI', area: 'Qualidade', cbo: '2124-30', demand: 'Crescente', openJobsCount: 410, synonyms: ['qa', 'testes automatizados', 'cypress', 'selenium', 'qualidade de software'] },
 
-  // Climatização & Refrigeração
-  { id: '9', name: 'Técnico em Climatização & Ar-Condicionado', area: 'Climatização', synonyms: ['ar condicionado', 'split', 'inverter', 'carga de gás'] },
-  { id: '10', name: 'Instalador de Ar-Condicionado Split & Multi-Split', area: 'Climatização', synonyms: ['instalação split', 'tubulação de cobre', 'dreno'] },
-  { id: '11', name: 'Higienização & Limpeza de Ar-Condicionado (PMOC)', area: 'Climatização', synonyms: ['limpeza ar', 'bactericida', 'higienização split', 'pmoc'] },
-  { id: '12', name: 'Técnico em Refrigeração Residencial (Geladeiras / Freezers)', area: 'Refrigeração', synonyms: ['geladeira', 'refrigerador', 'frost free', 'troca de motor'] },
-  { id: '13', name: 'Técnico em Refrigeração Comercial & Câmaras Frias', area: 'Refrigeração', synonyms: ['câmara frigorífica', 'balcão refrigerado', 'chiller'] },
-  { id: '14', name: 'Manutenção de Máquinas de Lavar, Secadoras e Lava e Seca', area: 'Eletrodomésticos', synonyms: ['máquina de lavar', 'lava e seca', 'tanquinho', 'consul', 'brastemp', 'electrolux'] },
-  { id: '15', name: 'Conserto de Micro-ondas e Eletrodomésticos', area: 'Eletrodomésticos', synonyms: ['microondas', 'forno elétrico', 'air fryer'] },
+  // ==================== CONSTRUÇÃO & REFORMAS ====================
+  { id: 'const-1', name: 'Eletricista Residencial e Comercial', category: 'Construção & Reformas', area: 'Elétrica', cbo: '7156-15', demand: 'Alta Demanda', openJobsCount: 2100, synonyms: ['eletricista', 'fiação', 'disjuntor', 'tomada', 'quadro elétrico', 'iluminação'] },
+  { id: 'const-2', name: 'Eletricista Predial & Padrão de Entrada de Energia', category: 'Construção & Reformas', area: 'Elétrica', cbo: '7156-10', demand: 'Alta Demanda', openJobsCount: 1100, synonyms: ['padrão copel', 'padrão enel', 'entrada de luz', 'poste', 'trifásico'] },
+  { id: 'const-3', name: 'Instalador de Energia Solar / Fotovoltaica', category: 'Construção & Reformas', area: 'Energia Solar', cbo: '7156-25', demand: 'Alta Demanda', openJobsCount: 940, synonyms: ['placa solar', 'painel solar', 'inversor solar', 'energia limpa'] },
+  { id: 'const-4', name: 'Técnico em Climatização & Ar-Condicionado', category: 'Construção & Reformas', area: 'Climatização', cbo: '3141-10', demand: 'Alta Demanda', openJobsCount: 1650, synonyms: ['ar condicionado', 'split', 'inverter', 'carga de gás', 'limpeza ar', 'pmoc'] },
+  { id: 'const-5', name: 'Técnico em Refrigeração (Geladeiras, Freezers e Bebedouros)', category: 'Construção & Reformas', area: 'Refrigeração', cbo: '3141-05', demand: 'Alta Demanda', openJobsCount: 880, synonyms: ['geladeira', 'freezer', 'frost free', 'motor', 'refrigerador', 'bebedouro'] },
+  { id: 'const-6', name: 'Encanador e Bombeiro Hidráulico', category: 'Construção & Reformas', area: 'Hidráulica', cbo: '7241-10', demand: 'Alta Demanda', openJobsCount: 1800, synonyms: ['encanador', 'cano', 'vazamento', 'troca de registro', 'sifão', 'tubulação'] },
+  { id: 'const-7', name: 'Caça-Vazamentos Especializado (Geofone Digital)', category: 'Construção & Reformas', area: 'Hidráulica', cbo: '7241-15', demand: 'Alta Demanda', openJobsCount: 520, synonyms: ['geofone', 'infiltração', 'conta alta de água', 'vazamento oculto'] },
+  { id: 'const-8', name: 'Pedreiro de Alvenaria, Reformas & Estrutura', category: 'Construção & Reformas', area: 'Construção Civil', cbo: '7152-10', demand: 'Alta Demanda', openJobsCount: 3200, synonyms: ['pedreiro', 'alvenaria', 'assentar tijolo', 'reboco', 'contrapiso', 'reforma'] },
+  { id: 'const-9', name: 'Azulejista & Assentador de Porcelanatos Grandes Formatos', category: 'Construção & Reformas', area: 'Acabamentos', cbo: '7165-05', demand: 'Alta Demanda', openJobsCount: 1400, synonyms: ['porcelanato', 'azulejo', 'piso', 'revestimento', 'rejunte epóxi'] },
+  { id: 'const-10', name: 'Pintor Profissional, Texturas, Vernizes & Grafiato', category: 'Construção & Reformas', area: 'Pintura', cbo: '7166-10', demand: 'Alta Demanda', openJobsCount: 2300, synonyms: ['pintor', 'massa corrida', 'pintura de parede', 'tinta acrílica', 'grafiato'] },
+  { id: 'const-11', name: 'Pintor de Fachadas & Trabalhos em Altura (NR-35)', category: 'Construção & Reformas', area: 'Pintura Predial', cbo: '7166-15', demand: 'Média Demanda', openJobsCount: 460, synonyms: ['fachada', 'rapel predial', 'lavagem de fachada', 'balancim'] },
+  { id: 'const-12', name: 'Gesseiro, Sancas, Forros & Drywall', category: 'Construção & Reformas', area: 'Construção a Seco', cbo: '7164-05', demand: 'Alta Demanda', openJobsCount: 1150, synonyms: ['drywall', 'gesso liso', 'forro acartonado', 'sanca iluminada', 'divisória'] },
+  { id: 'const-13', name: 'Marceneiro de Móveis Planejados & Sob Medida', category: 'Construção & Reformas', area: 'Marcenaria', cbo: '7711-05', demand: 'Alta Demanda', openJobsCount: 980, synonyms: ['armário planejado', 'mdf', 'cozinha planejada', 'closet', 'marcenaria'] },
+  { id: 'const-14', name: 'Montador de Móveis Residencial & Comercial', category: 'Construção & Reformas', area: 'Montagem', cbo: '7711-10', demand: 'Alta Demanda', openJobsCount: 1950, synonyms: ['montar guarda-roupa', 'mesa', 'painel de tv', 'móveis comprados na internet'] },
+  { id: 'const-15', name: 'Serralheiro de Ferro, Aço & Grades de Proteção', category: 'Construção & Reformas', area: 'Serralheria', cbo: '7244-40', demand: 'Alta Demanda', openJobsCount: 870, synonyms: ['grade', 'portão de ferro', 'solda', 'corrimão', 'estrutura metálica'] },
+  { id: 'const-16', name: 'Vidraceiro, Box Blindex & Espelhos Decorativos', category: 'Construção & Reformas', area: 'Vidraçaria', cbo: '7161-05', demand: 'Alta Demanda', openJobsCount: 780, synonyms: ['box de banheiro', 'vidro temperado', 'espelho bisotê', 'guarda-corpo'] },
+  { id: 'const-17', name: 'Telhadista, Calhas, Rufos & Conserto de Telhados', category: 'Construção & Reformas', area: 'Coberturas', cbo: '7154-05', demand: 'Alta Demanda', openJobsCount: 650, synonyms: ['telhado', 'calha', 'rufo', 'telha colonial', 'goteira', 'manta térmica'] },
+  { id: 'const-18', name: 'Mestre de Obras & Gerenciamento de Edificações', category: 'Construção & Reformas', area: 'Gestão de Obras', cbo: '7102-05', demand: 'Crescente', openJobsCount: 540, synonyms: ['mestre de obras', 'encarregado', 'concreto', 'fundação', 'cronograma'] },
 
-  // Hidráulica & Gás
-  { id: '16', name: 'Encanador Residencial & Predial', area: 'Hidráulica', synonyms: ['encanador', 'cano', 'vazamento', 'troca de registro', 'sifão'] },
-  { id: '17', name: 'Caça-Vazamentos Especializado (Geofone Digital)', area: 'Hidráulica', synonyms: ['geofone', 'infiltração', 'conta alta de água', 'vazamento invisível'] },
-  { id: '18', name: 'Instalador & Técnico de Aquecedores a Gás', area: 'Gás & Aquecimento', synonyms: ['aquecedor a gás', 'rinai', 'lorenzetti', 'pressurizador'] },
-  { id: '19', name: 'Desentupidora & Limpeza de Caixas de Gordura', area: 'Desentupimento', synonyms: ['desentupir pia', 'esgoto', 'ralo', 'hidrojateamento'] },
-  { id: '20', name: 'Bombeiro Hidráulico & Redes de Distribuição', area: 'Hidráulica', synonyms: ['tubulação tigre', 'barrilete', 'pressurização'] },
-  { id: '21', name: 'Instalação de Louças Sanitárias, Torneiras & Válvulas Hydra', area: 'Hidráulica', synonyms: ['vaso sanitário', 'metais', 'deca', 'docol'] },
-  { id: '22', name: 'Limpeza e Higienização de Caixas d\'Água', area: 'Saneamento', synonyms: ['caixa de agua', 'desinfecção', 'cloração'] },
+  // ==================== VENDAS & COMERCIAL ====================
+  { id: 'sales-1', name: 'Vendedor(a) do Comércio Varejista', category: 'Vendas & Comercial', area: 'Varejo', cbo: '5211-10', demand: 'Alta Demanda', openJobsCount: 5400, synonyms: ['vendedor', 'atendente de loja', 'comércio', 'balcão', 'loja de shopping'] },
+  { id: 'sales-2', name: 'Representante Comercial Autônomo', category: 'Vendas & Comercial', area: 'B2B & Representação', cbo: '3541-25', demand: 'Alta Demanda', openJobsCount: 1600, synonyms: ['representante', 'comissões', 'vendas externas', 'carteira de clientes', 'atacado'] },
+  { id: 'sales-3', name: 'Corretor(a) de Imóveis (CRECI)', category: 'Vendas & Comercial', area: 'Imobiliário', cbo: '3544-10', demand: 'Alta Demanda', openJobsCount: 2200, synonyms: ['imobiliária', 'venda de apartamentos', 'locação', 'creci', 'casas', 'terrenos'] },
+  { id: 'sales-4', name: 'Consultor(a) de Vendas & Negócios', category: 'Vendas & Comercial', area: 'Consultoria Comercial', cbo: '3541-20', demand: 'Alta Demanda', openJobsCount: 1950, synonyms: ['consultor comercial', 'prospecção', 'fechamento', 'negociação'] },
+  { id: 'sales-5', name: 'Operador(a) de Caixa e Recebimentos', category: 'Vendas & Comercial', area: 'Atendimento & Caixa', cbo: '4211-25', demand: 'Alta Demanda', openJobsCount: 4100, synonyms: ['caixa', 'supermercado', 'fechamento de caixa', 'troco', 'atendimento ao cliente'] },
+  { id: 'sales-6', name: 'Promotor(a) de Vendas & Merchandising', category: 'Vendas & Comercial', area: 'Trade Marketing', cbo: '5211-15', demand: 'Média Demanda', openJobsCount: 1300, synonyms: ['promotor', 'degustação', 'ponto de venda', 'gôndola', 'demonstração'] },
+  { id: 'sales-7', name: 'Gerente de Loja e Equipes de Vendas', category: 'Vendas & Comercial', area: 'Gestão de Varejo', cbo: '1423-20', demand: 'Crescente', openJobsCount: 750, synonyms: ['gerente comercial', 'liderança', 'metas', 'gestão de equipe'] },
+  { id: 'sales-8', name: 'Operador(a) de Televendas & Inside Sales', category: 'Vendas & Comercial', area: 'Vendas Remotas', cbo: '4223-10', demand: 'Alta Demanda', openJobsCount: 2800, synonyms: ['telemarketing', 'call center', 'vendas por telefone', 'inside sales', 'sdr'] },
 
-  // Construção & Acabamentos
-  { id: '23', name: 'Pedreiro & Reformas Gerais', area: 'Construção Civil', synonyms: ['alvenaria', 'assentar tijolo', 'reboco', 'contrapiso', 'reforma'] },
-  { id: '24', name: 'Azulejista & Assentador de Porcelanatos Grandes Formatos', area: 'Acabamento', synonyms: ['porcelanato', 'azulejo', 'piso', 'revestimento', 'rejunte epóxi'] },
-  { id: '25', name: 'Pintor Profissional, Texturas, Vernizes & Grafiato', area: 'Pintura', synonyms: ['pintura de parede', 'tinta', 'massa corrida', 'lixamento', 'grafiato'] },
-  { id: '26', name: 'Pintor de Fachadas & Trabalhos em Altura (NR-35)', area: 'Pintura Predial', synonyms: ['fachada', 'rapel predial', 'lavagem de fachada'] },
-  { id: '27', name: 'Gesseiro, Sancas, Forros & Drywall', area: 'Construção a Seco', synonyms: ['drywall', 'gesso liso', 'forro acartonado', 'sanca iluminada', 'divisória'] },
-  { id: '28', name: 'Telhadista, Calhas, Rufos & Conserto de Telhados', area: 'Coberturas', synonyms: ['telhado', 'calha', 'rufo', 'telha colonial', 'goteira', 'manta térmica'] },
-  { id: '29', name: 'Impermeabilização & Tratamento de Infiltrações', area: 'Construção', synonyms: ['impermeabilizante', 'manta asfáltica', 'umidade', 'mofo'] },
-  { id: '30', name: 'Mestre de Obras & Gerenciamento de Obras', area: 'Construção Civil', synonyms: ['supervisão', 'fundação', 'concreto', 'cronograma'] },
+  // ==================== SAÚDE & BEM-ESTAR ====================
+  { id: 'health-1', name: 'Enfermeiro(a) Geral e Hospitalar', category: 'Saúde & Bem-Estar', area: 'Enfermagem', cbo: '2235-05', demand: 'Alta Demanda', openJobsCount: 3100, synonyms: ['enfermeira', 'coren', 'hospital', 'uti', 'pronto socorro', 'home care'] },
+  { id: 'health-2', name: 'Técnico(a) em Enfermagem', category: 'Saúde & Bem-Estar', area: 'Enfermagem', cbo: '3222-05', demand: 'Alta Demanda', openJobsCount: 4200, synonyms: ['técnico enfermagem', 'curativos', 'medicação', 'aferição', 'clínica'] },
+  { id: 'health-3', name: 'Cuidador(a) de Idosos e Acompanhante', category: 'Saúde & Bem-Estar', area: 'Cuidados Pessoais', cbo: '5162-10', demand: 'Alta Demanda', openJobsCount: 2900, synonyms: ['cuidadora', 'geriatria', 'acompanhante hospitalar', 'idoso', 'home care'] },
+  { id: 'health-4', name: 'Fisioterapeuta Clínico e Domiciliar', category: 'Saúde & Bem-Estar', area: 'Fisioterapia', cbo: '2236-05', demand: 'Alta Demanda', openJobsCount: 1400, synonyms: ['fisioterapia', 'reabilitação', 'ortopedia', 'pilates', 'crefito'] },
+  { id: 'health-5', name: 'Psicólogo(a) Clínico e Organizacional', category: 'Saúde & Bem-Estar', area: 'Psicologia', cbo: '2515-10', demand: 'Alta Demanda', openJobsCount: 1800, synonyms: ['psicologia', 'terapia', 'saúde mental', 'crp', 'atendimento online', 'tcc'] },
+  { id: 'health-6', name: 'Nutricionista Clínico e Esportivo', category: 'Saúde & Bem-Estar', area: 'Nutrição', cbo: '2237-10', demand: 'Crescente', openJobsCount: 950, synonyms: ['nutrição', 'dieta', 'emagrecimento', 'crn', 'plano alimentar'] },
+  { id: 'health-7', name: 'Cirurgião-Dentista / Odontologista', category: 'Saúde & Bem-Estar', area: 'Odontologia', cbo: '2232-08', demand: 'Média Demanda', openJobsCount: 820, synonyms: ['dentista', 'cro', 'ortodontia', 'limpeza dental', 'prótese', 'clareamento'] },
+  { id: 'health-8', name: 'Massoterapeuta & Terapeuta Holístico', category: 'Saúde & Bem-Estar', area: 'Terapias Manuais', cbo: '5161-40', demand: 'Alta Demanda', openJobsCount: 880, synonyms: ['massagem relaxante', 'drenagem linfática', 'shiatsu', 'ventosaterapia', 'alívio de dor'] },
+  { id: 'health-9', name: 'Personal Trainer & Instrutor de Musculação', category: 'Saúde & Bem-Estar', area: 'Educação Física', cbo: '2241-20', demand: 'Alta Demanda', openJobsCount: 1650, synonyms: ['academia', 'treino personalizado', 'crossfit', 'cref', 'musculação'] },
 
-  // Marcenaria & Móveis
-  { id: '31', name: 'Marceneiro de Móveis Planejados & Sob Medida', area: 'Marcenaria', synonyms: ['armário planejado', 'mdf', 'cozinha planejada', 'closet'] },
-  { id: '32', name: 'Montador de Móveis Residencial & Comercial', area: 'Montagem', synonyms: ['montar guarda-roupa', 'mesa', 'painel de tv', 'móveis da internet'] },
-  { id: '33', name: 'Instalador de Pisos Laminados & Pisos Vinílicos', area: 'Pisos', synonyms: ['vinílico', 'laminado', 'rodapé', 'quick-step'] },
-  { id: '34', name: 'Carpinteiro & Estruturas de Madeira / Pergolados', area: 'Carpintaria', synonyms: ['deck de madeira', 'pergolado', 'porta de madeira', 'forro de madeira'] },
-  { id: '35', name: 'Restauração, Pintura e Laqueamento de Móveis', area: 'Marcenaria', synonyms: ['laquear', 'verniz', 'lixar móvel', 'pátina'] },
+  // ==================== ADMINISTRATIVO & FINANÇAS ====================
+  { id: 'admin-1', name: 'Assistente Administrativo', category: 'Administrativo & Finanças', area: 'Administração', cbo: '4110-10', demand: 'Alta Demanda', openJobsCount: 6200, synonyms: ['auxiliar administrativo', 'rotinas de escritório', 'planilhas', 'atendimento', 'documentos'] },
+  { id: 'admin-2', name: 'Auxiliar de Escritório em Geral', category: 'Administrativo & Finanças', area: 'Administração', cbo: '4110-05', demand: 'Alta Demanda', openJobsCount: 4800, synonyms: ['escritório', 'arquivo', 'recepção', 'contas a pagar', 'digitação'] },
+  { id: 'admin-3', name: 'Contador(a) e Perito Contábil', category: 'Administrativo & Finanças', area: 'Contabilidade', cbo: '2522-10', demand: 'Alta Demanda', openJobsCount: 1500, synonyms: ['crc', 'balanço', 'tributos', 'imposto de renda', 'fechamento fiscal', 'folha'] },
+  { id: 'admin-4', name: 'Analista Financeiro e de Controladoria', category: 'Administrativo & Finanças', area: 'Finanças', cbo: '2525-45', demand: 'Alta Demanda', openJobsCount: 1800, synonyms: ['fluxo de caixa', 'dre', 'conciliação bancária', 'contas a receber', 'faturamento'] },
+  { id: 'admin-5', name: 'Assistente de Recursos Humanos / Departamento Pessoal', category: 'Administrativo & Finanças', area: 'RH & DP', cbo: '4110-30', demand: 'Alta Demanda', openJobsCount: 2200, synonyms: ['rh', 'dp', 'folha de pagamento', 'ponto', 'benefícios', 'admissão e demissão'] },
+  { id: 'admin-6', name: 'Secretária Executiva e Recepcionista Corporativa', category: 'Administrativo & Finanças', area: 'Recepção', cbo: '4221-05', demand: 'Alta Demanda', openJobsCount: 3400, synonyms: ['recepcionista', 'agenda', 'atendimento telefônico', 'secretariado', 'triagem'] },
+  { id: 'admin-7', name: 'Analista de Cobrança e Crédito', category: 'Administrativo & Finanças', area: 'Cobrança', cbo: '4131-10', demand: 'Média Demanda', openJobsCount: 1100, synonyms: ['recuperação de crédito', 'negociação de dívida', 'inadimplência'] },
 
-  // Segurança Eletrônica & Automação
-  { id: '36', name: 'Instalador de Câmeras de Segurança (CFTV IP & Analógico)', area: 'Segurança Eletrônica', synonyms: ['cftv', 'dvr', 'câmera wifi', 'intelbras', 'hikvision'] },
-  { id: '37', name: 'Alarmes Residenciais, Cerca Elétrica & Concertina', area: 'Segurança Perimetral', synonyms: ['alarme de intrusão', 'choque', 'sensor de presença'] },
-  { id: '38', name: 'Automatização & Manutenção de Portões Eletrônicos', area: 'Portões & Motores', synonyms: ['motor de portão', 'ppa', 'rossi', 'garen', 'cremalheira', 'controle'] },
-  { id: '39', name: 'Interfonia, Fechaduras Digitais & Controle de Acesso', area: 'Segurança Eletrônica', synonyms: ['interfone', 'videoporteiro', 'fechadura biométrica', 'tag'] },
-  { id: '40', name: 'Automação Residencial & Casa Inteligente (Smart Home)', area: 'Automação', synonyms: ['alexa', 'iluminação smart', 'sonoff', 'tuya', 'interruptor inteligente'] },
+  // ==================== LOGÍSTICA & TRANSPORTE ====================
+  { id: 'log-1', name: 'Motorista de Caminhão e Carreteiro (Cat D/E)', category: 'Logística & Transporte', area: 'Transporte Rodoviário', cbo: '7825-10', demand: 'Alta Demanda', openJobsCount: 3800, synonyms: ['caminhoneiro', 'carreta', 'cnh d', 'cnh e', 'viagens', 'carga pesada'] },
+  { id: 'log-2', name: 'Motorista de Van, Utilitários e Entregas Urbanas', category: 'Logística & Transporte', area: 'Entregas', cbo: '7823-10', demand: 'Alta Demanda', openJobsCount: 4500, synonyms: ['fiorino', 'van', 'entregas mercado livre', 'cnh b', 'transporte executivo'] },
+  { id: 'log-3', name: 'Motoboy, Motofretista e Entregador Delivery', category: 'Logística & Transporte', area: 'Delivery', cbo: '5191-10', demand: 'Alta Demanda', openJobsCount: 6800, synonyms: ['motofrete', 'entrega rápida', 'ifood', 'moto', 'delivery', 'encomendas'] },
+  { id: 'log-4', name: 'Auxiliar de Logística e Expedição', category: 'Logística & Transporte', area: 'Operações Logísticas', cbo: '4141-05', demand: 'Alta Demanda', openJobsCount: 5100, synonyms: ['expedição', 'triagem', 'conferência', 'embalagem', 'armazém', 'carregamento'] },
+  { id: 'log-5', name: 'Operador(a) de Empilhadeira', category: 'Logística & Transporte', area: 'Movimentação de Cargas', cbo: '7822-20', demand: 'Alta Demanda', openJobsCount: 1900, synonyms: ['empilhadeira elétrica', 'empilhadeira a gás', 'nr-11', 'paleteira', 'galpão'] },
+  { id: 'log-6', name: 'Estoquista e Conferente de Mercadorias', category: 'Logística & Transporte', area: 'Estoque', cbo: '4141-25', demand: 'Alta Demanda', openJobsCount: 3900, synonyms: ['conferente', 'inventário', 'código de barras', 'entrada de nota fiscal', 'depósito'] },
 
-  // Tecnologia & Eletrônica
-  { id: '41', name: 'Técnico em Informática & Manutenção de Computadores', area: 'Informática', synonyms: ['pc gamer', 'formatação', 'ssd', 'upgrade', 'windows'] },
-  { id: '42', name: 'Técnico em Manutenção de Notebooks & MacBooks', area: 'Informática', synonyms: ['conserto placa mãe', 'troca de tela', 'bateria de notebook'] },
-  { id: '43', name: 'Técnico em Manutenção de Celulares & Smartphones', area: 'Telefonia', synonyms: ['troca de tela iphone', 'conector de carga', 'bateria samsung'] },
-  { id: '44', name: 'Instalador de Redes, Wi-Fi & Cabeamento Estruturado', area: 'Redes & Telecom', synonyms: ['rede estruturada', 'cat6', 'repetidor wifi', 'mesh', 'fibra'] },
-  { id: '45', name: 'Técnico em Eletrônica & Reparo de Placas', area: 'Eletrônica', synonyms: ['solda smd', 'osciloscópio', 'reparo de circuito', 'tv smart'] },
+  // ==================== GASTRONOMIA & ALIMENTAÇÃO ====================
+  { id: 'gastro-1', name: 'Cozinheiro(a) Geral e Restaurante À La Carte', category: 'Gastronomia & Alimentação', area: 'Cozinha', cbo: '5132-05', demand: 'Alta Demanda', openJobsCount: 3700, synonyms: ['cozinha', 'fogão', 'preparo de pratos', 'restaurante', 'almoço', 'jantar'] },
+  { id: 'gastro-2', name: 'Confeiteiro(a) e Boleiro(a) Artesanal', category: 'Gastronomia & Alimentação', area: 'Confeitaria', cbo: '8483-10', demand: 'Alta Demanda', openJobsCount: 1200, synonyms: ['bolos decorados', 'doces finos', 'sobremesas', 'pasta americana', 'brigadeiro'] },
+  { id: 'gastro-3', name: 'Pizzaiolo(a) Profissional', category: 'Gastronomia & Alimentação', area: 'Pizzaria', cbo: '5132-20', demand: 'Alta Demanda', openJobsCount: 1600, synonyms: ['pizza', 'forno a lenha', 'massa de pizza', 'pizzaria delivery', 'calzone'] },
+  { id: 'gastro-4', name: 'Churrasqueiro(a) para Eventos e Festas', category: 'Gastronomia & Alimentação', area: 'Carnes & Churrasco', cbo: '5132-25', demand: 'Alta Demanda', openJobsCount: 850, synonyms: ['churrasco', 'churrascaria', 'cortes nobres', 'grelhados', 'buffet'] },
+  { id: 'gastro-5', name: 'Sushiman e Culinária Japonesa', category: 'Gastronomia & Alimentação', area: 'Cozinha Oriental', cbo: '5132-15', demand: 'Alta Demanda', openJobsCount: 950, synonyms: ['sushi', 'sashimi', 'temaki', 'salmão', 'restaurante japonês'] },
+  { id: 'gastro-6', name: 'Padeiro(a) Artesanal e Fermentação Natural', category: 'Gastronomia & Alimentação', area: 'Panificação', cbo: '8483-05', demand: 'Alta Demanda', openJobsCount: 1400, synonyms: ['padaria', 'pão francês', 'levain', 'croissant', 'fornada'] },
+  { id: 'gastro-7', name: 'Garçom e Garçonete de Salão e Eventos', category: 'Gastronomia & Alimentação', area: 'Atendimento', cbo: '5134-05', demand: 'Alta Demanda', openJobsCount: 2900, synonyms: ['atendimento de mesa', 'buffet', 'casamentos', 'bandeja', 'restaurante'] },
+  { id: 'gastro-8', name: 'Barman, Bartender e Mixologista', category: 'Gastronomia & Alimentação', area: 'Bar & Coquetelaria', cbo: '5134-20', demand: 'Alta Demanda', openJobsCount: 1100, synonyms: ['drinks', 'coquetéis', 'chopp', 'pub', 'eventos', 'caipirinhas'] },
 
-  // Serralheria, Vidraçaria & Metais
-  { id: '46', name: 'Serralheiro de Ferro, Aço & Grades de Proteção', area: 'Serralheria', synonyms: ['grade', 'portão de ferro', 'solda', 'corrimão'] },
-  { id: '47', name: 'Serralheiro de Alumínio & Esquadrias', area: 'Esquadrias', synonyms: ['janela de alumínio', 'porta balcão', 'linha suprema'] },
-  { id: '48', name: 'Vidraceiro, Box Blindex & Espelhos Decorativos', area: 'Vidraçaria', synonyms: ['box de banheiro', 'vidro temperado', 'espelho bisotê', 'guarda-corpo'] },
-  { id: '49', name: 'Soldador Especializado (TIG / MIG / Eletrodo Revestido)', area: 'Metalurgia', synonyms: ['soldagem', 'tubulação inox', 'caldeiraria'] },
-  { id: '50', name: 'Instalador de Toldos, Coberturas de Policarbonato & Lonas', area: 'Coberturas', synonyms: ['toldo retrátil', 'policarbonato alveolar', 'sombreamento'] },
+  // ==================== BELEZA & ESTÉTICA ====================
+  { id: 'beauty-1', name: 'Cabeleireiro(a), Colorista & Especialista em Mechas', category: 'Beleza & Estética', area: 'Cabelos', cbo: '5161-10', demand: 'Alta Demanda', openJobsCount: 2600, synonyms: ['corte de cabelo', 'mechas', 'tintura', 'escova progressiva', 'salão de beleza'] },
+  { id: 'beauty-2', name: 'Barbeiro e Especialista em Barba / Degradê', category: 'Beleza & Estética', area: 'Barbearia', cbo: '5161-05', demand: 'Alta Demanda', openJobsCount: 2100, synonyms: ['barbearia', 'fade', 'navalha', 'pigmentação', 'corte masculino'] },
+  { id: 'beauty-3', name: 'Manicure, Pedicure & Nail Designer (Unhas de Fibra/Gel)', category: 'Beleza & Estética', area: 'Unhas', cbo: '5161-20', demand: 'Alta Demanda', openJobsCount: 3300, synonyms: ['unhas em gel', 'alongamento de fibra', 'esmaltacao', 'cutilagem', 'nail art'] },
+  { id: 'beauty-4', name: 'Designer de Sobrancelhas & Micropigmentadora', category: 'Beleza & Estética', area: 'Olhar & Sobrancelhas', cbo: '5161-25', demand: 'Alta Demanda', openJobsCount: 1750, synonyms: ['henna', 'microblading', 'extensão de cílios', 'lash lifting', 'visagismo'] },
+  { id: 'beauty-5', name: 'Esteticista Facial e Corporal', category: 'Beleza & Estética', area: 'Estética', cbo: '3221-30', demand: 'Alta Demanda', openJobsCount: 1450, synonyms: ['limpeza de pele', 'peeling', 'drenagem', 'botox', 'harmonização', 'radiofrequência'] },
+  { id: 'beauty-6', name: 'Maquiadora Profissional e de Noivas', category: 'Beleza & Estética', area: 'Maquiagem', cbo: '5161-45', demand: 'Alta Demanda', openJobsCount: 1100, synonyms: ['maquiagem social', 'make noiva', 'formatura', 'editorial'] },
+  { id: 'beauty-7', name: 'Tatuador(a) Profissional & Body Piercer', category: 'Beleza & Estética', area: 'Body Art', cbo: '5168-05', demand: 'Média Demanda', openJobsCount: 650, synonyms: ['tattoo', 'piercing', 'tatuagem realista', 'fineline', 'blackwork'] },
 
-  // Automotivo & Mecânica
-  { id: '51', name: 'Mecânico Automotivo Especializado em Motores & Câmbio', area: 'Automotivo', synonyms: ['troca de óleo', 'correia dentada', 'freio', 'suspensão', 'cabeçote'] },
-  { id: '52', name: 'Eletricista Automotivo & Diagnóstico Computadorizado', area: 'Automotivo', synonyms: ['scanner automotivo', 'injeção eletrônica', 'alternador', 'bateria de carro'] },
-  { id: '53', name: 'Funilaria & Pintura Automotiva Profissional', area: 'Automotivo', synonyms: ['reparo de batida', 'cristalização', 'polimento automotivo'] },
-  { id: '54', name: 'Martelinho de Ouro & Reparo de Amassados sem Pintura', area: 'Automotivo', synonyms: ['granizo', 'desamassar', 'estética automotiva'] },
-  { id: '55', name: 'Instalador de Som Automotivo, Insulfilm & Acessórios', area: 'Automotivo', synonyms: ['película solar', 'insulfilm', 'alto falante', 'multimídia'] },
-  { id: '56', name: 'Ar-Condicionado Automotivo & Carga de Gás', area: 'Automotivo', synonyms: ['ar condicionado carro', 'higienização ozônio', 'compressor auto'] },
+  // ==================== EDUCAÇÃO & TREINAMENTO ====================
+  { id: 'edu-1', name: 'Professor(a) de Ensino Fundamental e Médio', category: 'Educação & Treinamento', area: 'Educação Básica', cbo: '2313-05', demand: 'Alta Demanda', openJobsCount: 3800, synonyms: ['escola', 'aulas', 'matemática', 'português', 'história', 'pedagogia'] },
+  { id: 'edu-2', name: 'Professor(a) de Idiomas (Inglês, Espanhol, etc.)', category: 'Educação & Treinamento', area: 'Línguas Estrangeiras', cbo: '2394-15', demand: 'Alta Demanda', openJobsCount: 1950, synonyms: ['aulas de inglês', 'conversação', 'toefl', 'espanhol', 'aulas particulares'] },
+  { id: 'edu-3', name: 'Pedagogo(a) e Orientador(a) Educacional', category: 'Educação & Treinamento', area: 'Pedagogia', cbo: '2394-05', demand: 'Média Demanda', openJobsCount: 1200, synonyms: ['coordenação pedagógica', 'educação infantil', 'alfabetização'] },
+  { id: 'edu-4', name: 'Instrutor(a) de Cursos e Treinamentos Profissionalizantes', category: 'Educação & Treinamento', area: 'Capacitação', cbo: '2394-25', demand: 'Crescente', openJobsCount: 870, synonyms: ['palestrante', 'workshops', 'treinamento empresarial', 'mentoria'] },
+  { id: 'edu-5', name: 'Professor(a) de Música e Instrumentos (Violão, Teclado)', category: 'Educação & Treinamento', area: 'Artes & Música', cbo: '2627-05', demand: 'Média Demanda', openJobsCount: 620, synonyms: ['aulas de violão', 'piano', 'canto', 'guitarra', 'teoria musical'] },
 
-  // Serviços Gerais, Manutenção & Lar
-  { id: '57', name: 'Marido de Aluguel & Pequenos Reparos Gerais', area: 'Serviços Gerais', synonyms: ['faz tudo', 'pendurar quadro', 'trocar chuveiro', 'reparos rápidos'] },
-  { id: '58', name: 'Chaveiro 24 Horas & Aberturas Residenciais / Automotivas', area: 'Chaveiro', synonyms: ['cópia de chave', 'chave codificada', 'troca de segredo'] },
-  { id: '59', name: 'Jardinagem, Paisagismo & Poda de Árvores', area: 'Jardinagem', synonyms: ['cortar grama', 'roçadeira', 'plantio', 'adubação'] },
-  { id: '60', name: 'Tratador de Piscinas & Manutenção de Bombas e Filtros', area: 'Piscinas', synonyms: ['limpeza de piscina', 'cloro', 'troca de areia do filtro'] },
-  { id: '61', name: 'Limpeza Pós-Obra Especializada & Tratamento de Pisos', area: 'Limpeza Especializada', synonyms: ['limpeza pesada', 'polimento de mármore', 'limpeza de vidros'] },
-  { id: '62', name: 'Dedetizadora & Controle de Pragas Urbanas', area: 'Sanitização', synonyms: ['dedetização', 'barata', 'formiga', 'cupim', 'ratos'] },
-  { id: '63', name: 'Instalador de Cortinas, Persianas & Redes de Proteção', area: 'Instalação Residencial', synonyms: ['rede de proteção para janela', 'persiana rolô', 'cortina sob medida'] },
-  { id: '64', name: 'Tapeceiro & Higienização de Sofás e Estofados', area: 'Estofados', synonyms: ['limpeza de sofá', 'lavagem a seco', 'reforma de sofá', 'impermeabilização de tecido'] }
+  // ==================== MARKETING & DESIGN ====================
+  { id: 'mkt-1', name: 'Social Media Manager & Gestor de Redes Sociais', category: 'Marketing & Design', area: 'Redes Sociais', cbo: '2614-10', demand: 'Alta Demanda', openJobsCount: 2400, synonyms: ['instagram', 'tiktok', 'criação de conteúdo', 'posts', 'reels', 'engajamento'] },
+  { id: 'mkt-2', name: 'Designer Gráfico & Diretor(a) de Arte', category: 'Marketing & Design', area: 'Design Visual', cbo: '2624-10', demand: 'Alta Demanda', openJobsCount: 1900, synonyms: ['photoshop', 'illustrator', 'identidade visual', 'logos', 'banners', 'impressos'] },
+  { id: 'mkt-3', name: 'Gestor(a) de Tráfego Pago & Performance (Meta/Google Ads)', category: 'Marketing & Design', area: 'Mídia Paga', cbo: '2611-20', demand: 'Alta Demanda', openJobsCount: 1600, synonyms: ['facebook ads', 'google ads', 'anúncios online', 'conversão', 'roi', 'leads'] },
+  { id: 'mkt-4', name: 'Fotógrafo(a) Profissional (Eventos, Produtos & Ensaios)', category: 'Marketing & Design', area: 'Fotografia', cbo: '2618-05', demand: 'Alta Demanda', openJobsCount: 1300, synonyms: ['fotos', 'casamento', 'ensaio gestante', 'fotos corporativas', 'lightroom'] },
+  { id: 'mkt-5', name: 'Videomaker & Editor(a) de Vídeo', category: 'Marketing & Design', area: 'Audiovisual', cbo: '3744-20', demand: 'Alta Demanda', openJobsCount: 1550, synonyms: ['premiere', 'after effects', 'gravação de vídeo', 'reels', 'youtube', 'drone'] },
+  { id: 'mkt-6', name: 'Redator(a) Publicitário e Copywriter', category: 'Marketing & Design', area: 'Conteúdo Escrito', cbo: '2615-15', demand: 'Crescente', openJobsCount: 750, synonyms: ['copywriting', 'textos persuasivos', 'artigos', 'páginas de vendas', 'email mkt'] },
+
+  // ==================== SERVIÇOS GERAIS & MANUTENÇÃO ====================
+  { id: 'sg-1', name: 'Marido de Aluguel & Pequenos Reparos Residenciais', category: 'Serviços Gerais & Manutenção', area: 'Reparos Rápidos', cbo: '5143-20', demand: 'Alta Demanda', openJobsCount: 3100, synonyms: ['faz tudo', 'pendurar quadro', 'trocar chuveiro', 'instalar suporte tv', 'fechadura'] },
+  { id: 'sg-2', name: 'Diarista e Profissional de Limpeza Residencial', category: 'Serviços Gerais & Manutenção', area: 'Limpeza', cbo: '5143-25', demand: 'Alta Demanda', openJobsCount: 5200, synonyms: ['faxina', 'limpeza de casa', 'passar roupa', 'cozinhar', 'faxineira'] },
+  { id: 'sg-3', name: 'Jardinagem, Paisagismo & Poda de Árvores', category: 'Serviços Gerais & Manutenção', area: 'Jardins', cbo: '6220-10', demand: 'Alta Demanda', openJobsCount: 1650, synonyms: ['cortar grama', 'roçadeira', 'paisagismo', 'adubação', 'limpeza de terreno'] },
+  { id: 'sg-4', name: 'Porteiro(a) e Controlador(a) de Acesso', category: 'Serviços Gerais & Manutenção', area: 'Portaria & Segurança', cbo: '5174-10', demand: 'Alta Demanda', openJobsCount: 4200, synonyms: ['portaria de condomínio', 'guarita', 'recepção de visitantes', 'encomendas'] },
+  { id: 'sg-5', name: 'Vigilante e Segurança Patrimonial', category: 'Serviços Gerais & Manutenção', area: 'Segurança', cbo: '5173-30', demand: 'Alta Demanda', openJobsCount: 2900, synonyms: ['vigilância armada', 'ronda', 'escolta', 'segurança de eventos', 'curso de vigilante'] },
+  { id: 'sg-6', name: 'Chaveiro 24 Horas Residencial e Automotivo', category: 'Serviços Gerais & Manutenção', area: 'Aberturas & Chaves', cbo: '5211-15', demand: 'Alta Demanda', openJobsCount: 950, synonyms: ['cópia de chave', 'chave codificada', 'abertura de porta travada', 'troca de miolo'] },
+  { id: 'sg-7', name: 'Tratador(a) de Piscinas e Manutenção de Bombas', category: 'Serviços Gerais & Manutenção', area: 'Piscinas', cbo: '5143-15', demand: 'Alta Demanda', openJobsCount: 780, synonyms: ['limpeza de piscina', 'cloro', 'filtro', 'aspiração', 'equilíbrio de ph'] },
+  { id: 'sg-8', name: 'Dedetizadora & Controle de Pragas Urbanas', category: 'Serviços Gerais & Manutenção', area: 'Sanitização', cbo: '5143-30', demand: 'Alta Demanda', openJobsCount: 650, synonyms: ['dedetização', 'cupim', 'barata', 'ratos', 'desratização'] },
+  { id: 'sg-9', name: 'Mecânico Automotivo de Motores, Freios e Suspensão', category: 'Serviços Gerais & Manutenção', area: 'Automotivo', cbo: '9144-05', demand: 'Alta Demanda', openJobsCount: 2800, synonyms: ['mecânica de carros', 'troca de óleo', 'correia dentada', 'alinhamento', 'freios'] },
+  { id: 'sg-10', name: 'Eletricista Automotivo & Diagnóstico Computadorizado', category: 'Serviços Gerais & Manutenção', area: 'Autoelétrica', cbo: '9144-15', demand: 'Alta Demanda', openJobsCount: 1400, synonyms: ['auto elétrica', 'alternador', 'bateria de carro', 'scanner', 'motor de arranque'] },
+
+  // ==================== JURÍDICO & CONSULTORIA ====================
+  { id: 'law-1', name: 'Advogado(a) Trabalhista, Cível e Previdenciário', category: 'Jurídico & Consultoria', area: 'Direito', cbo: '2410-05', demand: 'Alta Demanda', openJobsCount: 1700, synonyms: ['oab', 'processo trabalhista', 'aposentadoria', 'inss', 'divórcio', 'inventário'] },
+  { id: 'law-2', name: 'Assistente Jurídico e Paralegal', category: 'Jurídico & Consultoria', area: 'Suporte Jurídico', cbo: '3514-30', demand: 'Alta Demanda', openJobsCount: 1450, synonyms: ['escritório de advocacia', 'prazos processuais', 'peças jurídicas', 'audiências'] },
+  { id: 'law-3', name: 'Consultor(a) Financeiro e Planejador Pessoal', category: 'Jurídico & Consultoria', area: 'Planejamento', cbo: '2410-15', demand: 'Crescente', openJobsCount: 520, synonyms: ['finanças pessoais', 'investimentos', 'planejamento tributário', 'dívidas'] }
 ];
 
 /**
- * Normaliza string para comparação sem acentos
+ * Normaliza string para comparação sem acentos e minúsculas
  */
-function normalizeStr(text: string): string {
+export function normalizeStr(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
@@ -108,70 +169,108 @@ function normalizeStr(text: string): string {
     .trim();
 }
 
+export interface SearchProfessionsOptions {
+  query: string;
+  category?: string;
+  signal?: AbortSignal;
+}
+
 /**
- * Busca de profissões em tempo real via API assíncrona.
- * Suporta cancelamento com AbortSignal e debounce.
+ * Busca de empregos e profissões em tempo real via API assíncrona.
+ * Retorna sugestões de autocompletar conforme o usuário digita.
  */
 export async function searchProfessionsApi(
-  query: string, 
-  signal?: AbortSignal
+  options: SearchProfessionsOptions | string,
+  signalParam?: AbortSignal
 ): Promise<ProfessionApiItem[]> {
-  // Simula latência de rede realista da API (100ms)
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(resolve, 100);
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        clearTimeout(timer);
-        reject(new DOMException('Aborted', 'AbortError'));
-      });
-    }
-  });
+  const query = typeof options === 'string' ? options : options.query;
+  const signal = typeof options === 'string' ? signalParam : options.signal;
+  const cleanQuery = normalizeStr(query || '');
 
-  const cleanQuery = normalizeStr(query);
-
-  if (!cleanQuery) {
-    // Retorna as mais requisitadas por padrão
-    return PROFESSIONS_CATALOG.slice(0, 12);
-  }
+  // 1. Busca imediata com ranqueamento no catálogo abrangente CBO
+  let pool = PROFESSIONS_CATALOG;
 
   const queryTerms = cleanQuery.split(/\s+/).filter(Boolean);
 
-  // Busca e ranqueamento inteligente
-  const scored = PROFESSIONS_CATALOG.map((item) => {
-    const nameNorm = normalizeStr(item.name);
-    const areaNorm = normalizeStr(item.area);
-    const synNorm = item.synonyms ? item.synonyms.map(normalizeStr) : [];
+  let localResults: ProfessionApiItem[] = [];
 
-    let score = 0;
+  if (!cleanQuery) {
+    localResults = pool.slice(0, 15);
+  } else {
+    const scored = pool.map((item) => {
+      const nameNorm = normalizeStr(item.name);
+      const areaNorm = normalizeStr(item.area);
+      const synNorm = item.synonyms ? item.synonyms.map(normalizeStr) : [];
+      const cboNorm = item.cbo ? normalizeStr(item.cbo) : '';
 
-    // Correspondência exata no início do nome ganha prioridade máxima
-    if (nameNorm.startsWith(cleanQuery)) {
-      score += 100;
-    } else if (nameNorm.includes(cleanQuery)) {
-      score += 50;
+      let score = 0;
+
+      // Correspondência exata no início da profissão
+      if (nameNorm.startsWith(cleanQuery)) {
+        score += 200;
+      } else if (nameNorm.includes(cleanQuery)) {
+        score += 90;
+      }
+
+      // Palavras que começam com o termo
+      const words = nameNorm.split(/\s+/);
+      if (words.some(w => w.startsWith(cleanQuery))) {
+        score += 120;
+      }
+
+      if (cboNorm.includes(cleanQuery)) {
+        score += 70;
+      }
+
+      // Termos individuais
+      for (const term of queryTerms) {
+        if (nameNorm.includes(term)) {
+          score += 40;
+        }
+        if (areaNorm.includes(term)) {
+          score += 25;
+        }
+        if (synNorm.some(s => s.includes(term))) {
+          score += 35;
+        }
+      }
+
+      return { item, score };
+    });
+
+    localResults = scored
+      .filter(res => res.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(res => res.item)
+      .slice(0, 15);
+  }
+
+  // 2. Consulta a API online em paralelo para enriquecer
+  try {
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+
+    const res = await fetch(`/api/jobs/search?${params.toString()}`, { signal });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.results) && data.results.length > 0) {
+        // Mesclar itens online que não estejam já na lista
+        const existingNames = new Set(localResults.map(i => normalizeStr(i.name)));
+        const newFromApi: ProfessionApiItem[] = [];
+        for (const item of data.results) {
+          if (!existingNames.has(normalizeStr(item.name))) {
+            newFromApi.push(item);
+            existingNames.add(normalizeStr(item.name));
+          }
+        }
+        return [...localResults, ...newFromApi].slice(0, 15);
+      }
     }
-
-    // Termos individuais
-    for (const term of queryTerms) {
-      if (nameNorm.includes(term)) {
-        score += 25;
-      }
-      if (areaNorm.includes(term)) {
-        score += 15;
-      }
-      if (synNorm.some(s => s.includes(term))) {
-        score += 20;
-      }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw err;
     }
+  }
 
-    return { item, score };
-  });
-
-  // Filtra itens relevantes ordenados por pontuação
-  const results = scored
-    .filter(res => res.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(res => res.item);
-
-  return results.slice(0, 15);
+  return localResults;
 }

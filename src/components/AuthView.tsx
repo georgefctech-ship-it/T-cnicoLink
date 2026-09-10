@@ -377,16 +377,16 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Profissão / Área de Atuação <span className="text-orange-600">*</span>
+                    Profissão / Especialidade <span className="text-orange-600">*</span>
                   </label>
                   <ProfessionSelect
                     value={profession}
                     onChange={(prof) => setProfession(prof)}
-                    placeholder="Busque ou digite (Ex: Eletricista, Refrigeração...)"
+                    placeholder="Digite sua profissão (ex: Eletricista, Pintor, Desenvolvedor...)"
                     required
                   />
                   <span className="text-[10px] text-gray-400 mt-1 block">
-                    Selecione nas categorias ou digite uma profissão personalizada ("Outras").
+                    Digite para autocompletar com as profissões disponíveis ou digite a sua.
                   </span>
                 </div>
 

@@ -640,11 +640,11 @@ export const PainelView: React.FC<PainelViewProps> = ({
                   <ProfessionSelect
                     value={formData.profession}
                     onChange={(prof) => setFormData({ ...formData, profession: prof })}
-                    placeholder="Selecione ou digite..."
+                    placeholder="Digite sua profissão (ex: Eletricista, Pintor, Mecânico...)"
                     required
                   />
                   <span className="text-[10px] text-gray-400 mt-0.5 block">
-                    Digite para autocompletar ou escolha em Outras.
+                    Digite para autocompletar com as profissões disponíveis.
                   </span>
                 </div>
 
