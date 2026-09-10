@@ -338,12 +338,14 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
                   className="bg-white border border-gray-200 rounded-xl overflow-hidden cursor-pointer group hover:border-orange-500 transition-all shadow-2xs"
                 >
                   <div className="relative aspect-video bg-gray-100 overflow-hidden">
-                    <img
-                      src={photo.image_url}
-                      alt={photo.title || 'Foto de serviço realizado'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
+                    {photo.image_url ? (
+                      <img
+                        src={photo.image_url}
+                        alt={photo.title || 'Foto de serviço realizado'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    ) : null}
                     {photo.tag && (
                       <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/80 backdrop-blur-md text-white text-[10px] font-bold rounded">
                         {photo.tag}
@@ -782,11 +784,13 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({
             </button>
 
             <div className="relative aspect-video sm:aspect-[16/10] bg-gray-900">
-              <img
-                src={selectedPhoto.image_url}
-                alt={selectedPhoto.title || 'Foto de serviço'}
-                className="w-full h-full object-contain"
-              />
+              {selectedPhoto.image_url ? (
+                <img
+                  src={selectedPhoto.image_url}
+                  alt={selectedPhoto.title || 'Foto de serviço'}
+                  className="w-full h-full object-cover sm:object-contain"
+                />
+              ) : null}
               {selectedPhoto.tag && (
                 <span className="absolute top-3 left-3 px-2.5 py-1 bg-orange-600 text-white font-bold text-xs rounded-lg shadow-md">
                   {selectedPhoto.tag}

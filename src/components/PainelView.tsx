@@ -554,8 +554,9 @@ export const PainelView: React.FC<PainelViewProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setFormData(prev => ({ ...prev, avatar_url: '' }));
-                            saveLocalProfile({ ...formData, avatar_url: '' });
+                            const updated = { ...formData, avatar_url: '' };
+                            setFormData(updated);
+                            onSaveProfile(updated);
                             setAvatarSaveSuccess(true);
                             setTimeout(() => setAvatarSaveSuccess(false), 3000);
                           }}
@@ -930,11 +931,13 @@ export const PainelView: React.FC<PainelViewProps> = ({
                     className="bg-white border border-gray-200 hover:border-orange-400 rounded-xl overflow-hidden group transition-all flex flex-col justify-between shadow-2xs"
                   >
                     <div className="relative aspect-video bg-gray-100">
-                      <img
-                        src={photo.image_url}
-                        alt={photo.title || 'Foto de serviço'}
-                        className="w-full h-full object-cover"
-                      />
+                      {photo.image_url ? (
+                        <img
+                          src={photo.image_url}
+                          alt={photo.title || 'Foto de serviço'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : null}
                       {photo.tag && (
                         <span className="absolute top-2 left-2 bg-gray-900/85 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
                           {photo.tag}
@@ -1193,7 +1196,9 @@ export const PainelView: React.FC<PainelViewProps> = ({
                     <div className="grid grid-cols-2 gap-2">
                       {gallery.slice(0, 4).map(p => (
                         <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-200 border border-gray-200 shadow-2xs">
-                          <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                          {p.image_url ? (
+                            <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : null}
                           {p.tag && (
                             <span className="absolute bottom-1 left-1 bg-gray-900/80 text-[8px] text-white px-1 rounded font-medium">
                               {p.tag}
@@ -1363,14 +1368,16 @@ export const PainelView: React.FC<PainelViewProps> = ({
                   Pré-visualização da Imagem
                 </label>
                 <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group">
-                  <img
-                    src={editPhotoUrl}
-                    alt={editPhotoTitle}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = '0.5';
-                    }}
-                  />
+                  {editPhotoUrl ? (
+                    <img
+                      src={editPhotoUrl}
+                      alt={editPhotoTitle}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.opacity = '0.5';
+                      }}
+                    />
+                  ) : null}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       type="button"
@@ -1487,11 +1494,13 @@ export const PainelView: React.FC<PainelViewProps> = ({
             </p>
 
             <div className="my-3.5 aspect-video w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
-              <img
-                src={photoToDelete.image_url}
-                alt={photoToDelete.title || 'Foto'}
-                className="w-full h-full object-cover"
-              />
+              {photoToDelete.image_url ? (
+                <img
+                  src={photoToDelete.image_url}
+                  alt={photoToDelete.title || 'Foto'}
+                  className="w-full h-full object-cover"
+                />
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">

@@ -710,11 +710,17 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
                         <tr key={p.id} className={`hover:bg-gray-50/80 transition-colors ${isSuspended ? 'bg-red-50/30' : ''}`}>
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <img
-                                src={p.avatar_url}
-                                alt={p.full_name}
-                                className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0"
-                              />
+                              {p.avatar_url ? (
+                                <img
+                                  src={p.avatar_url}
+                                  alt={p.full_name}
+                                  className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-orange-100 border border-gray-200 shrink-0 flex items-center justify-center text-orange-600 font-bold text-sm uppercase">
+                                  {p.full_name ? p.full_name.charAt(0) : 'T'}
+                                </div>
+                              )}
                               <div className="min-w-0">
                                 <div className="font-bold text-gray-900 flex items-center gap-1.5 flex-wrap">
                                   <span>{p.full_name}</span>
@@ -1757,11 +1763,17 @@ export const AdminControlView: React.FC<AdminControlViewProps> = ({
 
               <div className="p-3.5 bg-red-50/60 rounded-xl border border-red-200 text-xs space-y-2 text-red-900">
                 <div className="flex items-center gap-2">
-                  <img
-                    src={deletingProfile.avatar_url}
-                    alt={deletingProfile.full_name}
-                    className="w-8 h-8 rounded-full object-cover border border-red-200 shrink-0"
-                  />
+                  {deletingProfile.avatar_url ? (
+                    <img
+                      src={deletingProfile.avatar_url}
+                      alt={deletingProfile.full_name}
+                      className="w-8 h-8 rounded-full object-cover border border-red-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-red-100 border border-red-200 shrink-0 flex items-center justify-center text-red-600 font-bold text-xs uppercase">
+                      {deletingProfile.full_name ? deletingProfile.full_name.charAt(0) : 'T'}
+                    </div>
+                  )}
                   <div>
                     <div className="font-bold text-gray-900">{deletingProfile.full_name}</div>
                     <div className="text-[11px] text-gray-500 font-mono">{getDisplayHost()}/p/{deletingProfile.username}</div>

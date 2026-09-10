@@ -255,11 +255,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 {/* Simulated profile inside */}
                 <div className="mt-3 p-3.5 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-3.5 items-start sm:items-center">
-                  <img
-                    src={activeProfile.avatar_url}
-                    alt={activeProfile.full_name}
-                    className="w-14 h-14 rounded-lg object-cover ring-2 ring-orange-500 shrink-0"
-                  />
+                  {activeProfile.avatar_url ? (
+                    <img
+                      src={activeProfile.avatar_url}
+                      alt={activeProfile.full_name}
+                      className="w-14 h-14 rounded-lg object-cover ring-2 ring-orange-500 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg bg-orange-100 ring-2 ring-orange-500 shrink-0 flex items-center justify-center text-orange-600 font-bold text-xl uppercase">
+                      {activeProfile.full_name ? activeProfile.full_name.charAt(0) : 'T'}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-gray-900 text-sm truncate">{activeProfile.full_name}</h4>
@@ -298,11 +304,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         className="group relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-xs cursor-pointer"
                         title="Ver no portfólio completo"
                       >
-                        <img
-                          src={photo.image_url}
-                          alt={photo.title || photo.tag || 'Foto de serviço'}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                        {photo.image_url ? (
+                          <img
+                            src={photo.image_url}
+                            alt={photo.title || photo.tag || 'Foto de serviço'}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : null}
                         {(photo.tag || photo.title) && (
                           <span className="absolute bottom-1 left-1 bg-gray-900/80 text-[10px] text-white px-1.5 py-0.5 rounded font-medium truncate max-w-[90%] pointer-events-none">
                             {photo.tag || photo.title}
